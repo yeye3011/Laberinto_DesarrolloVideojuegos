@@ -8,22 +8,34 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using UnityEngine;
+using System.Collections.Concurrent;
 
 public class LobbyServer : MonoBehaviour
 {
     [Header("Servidor")]
     [SerializeField] private int port = 7777;
 
+    [Header("Partida")]
+    [SerializeField] private int matchDurationSeconds = 120;
+
     private TcpListener server;
     private Thread serverThread;
 
     private bool isRunning;
+
+    private int remainingMatchTime;
+    private bool matchRunning;
+    private Coroutine matchTimerCoroutine;
 
     private readonly object clientsLock = new object();
 
     private readonly List<ClientConnection> clients = new List<ClientConnection>();
 
     private readonly List<LobbyPlayer> players = new List<LobbyPlayer>();
+
+    private readonly Dictionary<int, int> playerScores = new Dictionary<int, int>();
+
+    private readonly ConcurrentQueue<Action> mainThreadActions = new ConcurrentQueue<Action>();
 
     private int nextPlayerId = 2;
 
@@ -36,6 +48,22 @@ public class LobbyServer : MonoBehaviour
     public event Action<string> OnCountdownMessage;
     public event Action<string> OnSpawnAssignmentsReady;
     public event Action<string> OnPlayerStateReceived;
+    public event Action<int, int> OnCheeseCollectRequestReceived;
+    public event Action<string> OnScoreStateReceived;
+    public event Action<int> OnMatchTimeReceived;
+    public int LatestMatchTime { get; private set; } = -1;
+    public event Action OnMatchFinished;
+    public event Action OnMatchCancelled;
+
+
+    private void Update()
+    {
+        while (mainThreadActions.TryDequeue(out Action action))
+        {
+            action?.Invoke();
+        }
+    }
+
 
     // ---------------------------------------------------------
     // MOSTRAR IP
@@ -99,6 +127,9 @@ public class LobbyServer : MonoBehaviour
             playerName = hostName
         });
 
+        playerScores.Clear();
+        playerScores[hostId] = 0;
+
         if (NetworkSession.Instance != null)
         {
             NetworkSession.Instance.SetLocalPlayerId(hostId);
@@ -124,8 +155,6 @@ public class LobbyServer : MonoBehaviour
         {
             server = new TcpListener(IPAddress.Any, port);
             server.Start();
-
-            Debug.Log("Servidor escuchando en el puerto " + port);
 
             while (isRunning)
             {
@@ -163,7 +192,6 @@ public class LobbyServer : MonoBehaviour
                     if (!isRunning)
                         break;
 
-                    Debug.LogError("Error aceptando conexión.");
                 }
             }
         }
@@ -199,6 +227,7 @@ public class LobbyServer : MonoBehaviour
             };
 
             players.Add(player);
+            playerScores[id] = 0;
 
             connection.PlayerId = id;
             connection.PlayerName = playerName;
@@ -282,7 +311,6 @@ public class LobbyServer : MonoBehaviour
 
     public void BroadcastPlayerState(NetworkMessage message)
     {
-        Debug.Log("PlayerState recibido: " + message.data);
 
         // Entrega el estado al HOST
         OnPlayerStateReceived?.Invoke(message.data);
@@ -296,6 +324,302 @@ public class LobbyServer : MonoBehaviour
             }
         }
     }
+
+    public void ReceiveCheeseCollectRequest(int playerId, int cheeseId)
+    {
+        Debug.Log(
+            "SERVIDOR: solicitud recibida. Jugador "
+            + playerId
+            + " queso ID "
+            + cheeseId
+        );
+
+        OnCheeseCollectRequestReceived?.Invoke(
+            playerId,
+            cheeseId
+        );
+    }
+
+
+    public void BroadcastCheeseState(string cheeseJson)
+    {
+        NetworkMessage message = new NetworkMessage
+        {
+            type = "CheeseState",
+            data = cheeseJson
+        };
+
+        lock (clientsLock)
+        {
+            foreach (ClientConnection client in clients)
+            {
+                SendMessage(client, message);
+            }
+        }
+
+        Debug.Log(
+            "Servidor: estado de quesos enviado a todos los clientes."
+        );
+    }
+
+    public void BroadcastCheeseRemoved(
+    int cheeseId)
+    {
+        NetworkMessage message =  new NetworkMessage
+            {
+                type = "CheeseRemoved",
+                data = cheeseId.ToString()
+            };
+
+        lock (clientsLock)
+        {
+            foreach (ClientConnection client in clients)
+            {
+                SendMessage(
+                    client,
+                    message
+                );
+            }
+        }
+
+        Debug.Log(
+            "SERVIDOR: queso eliminado enviado. ID = "
+            + cheeseId
+        );
+    }
+
+    public void BroadcastCheeseSpawned(
+        string cheeseJson)
+    {
+        NetworkMessage message = new NetworkMessage
+            {
+                type = "CheeseSpawned",
+                data = cheeseJson
+            };
+
+        lock (clientsLock)
+        {
+            foreach (ClientConnection client in clients)
+            {
+                SendMessage(
+                    client,
+                    message
+                );
+            }
+        }
+
+        Debug.Log(
+            "SERVIDOR: reemplazo de queso enviado."
+        );
+
+    }
+
+    public void BroadcastSpeedEffect(string effectJson)
+    {
+        NetworkMessage message = new NetworkMessage
+        {
+            type = "SpeedEffect",
+            data = effectJson
+        };
+
+        lock (clientsLock)
+        {
+            foreach (ClientConnection client in clients)
+            {
+                SendMessage(client, message);
+            }
+        }
+
+        Debug.Log("SERVIDOR: efecto de velocidad enviado a los clientes.");
+    }
+
+    public void BroadcastFreezeEffect(string effectJson)
+    {
+        NetworkMessage message = new NetworkMessage
+        {
+            type = "FreezeEffect",
+            data = effectJson
+        };
+
+        lock (clientsLock)
+        {
+            foreach (ClientConnection client in clients)
+            {
+                SendMessage(client, message);
+            }
+        }
+
+        Debug.Log("SERVIDOR: efecto de congelamiento enviado a los clientes.");
+    }
+
+
+    public void AddPlayerScore(int playerId, int amount)
+    {
+        lock (clientsLock)
+        {
+            if (!playerScores.ContainsKey(playerId))
+                return;
+
+            playerScores[playerId] += amount;
+        }
+
+        Debug.Log(
+            "PUNTAJE: jugador "
+            + playerId
+            + " ahora tiene "
+            + playerScores[playerId]
+            + " puntos."
+        );
+
+        BroadcastScoreState();
+    }
+
+    private void BroadcastScoreState()
+    {
+        PlayerScoreList packet = new PlayerScoreList();
+
+        lock (clientsLock)
+        {
+            foreach (var entry in playerScores)
+            {
+                LobbyPlayer jugador = players.Find(
+                    p => p.playerId == entry.Key
+                );
+
+                string playerName = jugador != null
+                    ? jugador.playerName
+                    : "Jugador " + entry.Key;
+
+                packet.players.Add(new PlayerScoreData
+                {
+                    playerId = entry.Key,
+                    playerName = playerName,
+                    score = entry.Value
+                });
+            }
+        }
+
+        string json = JsonUtility.ToJson(packet);
+
+        NetworkMessage message = new NetworkMessage
+        {
+            type = "ScoreState",
+            data = json
+        };
+
+        lock (clientsLock)
+        {
+            foreach (ClientConnection client in clients)
+            {
+                SendMessage(client, message);
+            }
+        }
+
+        OnScoreStateReceived?.Invoke(json);
+    }
+
+    public void BroadcastScoreStateForHUD()
+    {
+        BroadcastScoreState();
+    }
+
+
+    // ---------------------------------------------------------
+    // TEMPORIZADOR
+    // ---------------------------------------------------------
+
+    public void StartMatchTimer()
+    {
+        if (!isRunning)
+            return;
+
+        if (matchRunning)
+            return;
+
+        if (players.Count < 2)
+            return;
+
+        if (matchTimerCoroutine != null)
+            StopCoroutine(matchTimerCoroutine);
+
+        matchRunning = true;
+        matchTimerCoroutine = StartCoroutine(MatchTimerCoroutine());
+    }
+
+    private IEnumerator MatchTimerCoroutine()
+    {
+        matchRunning = true;
+        remainingMatchTime = matchDurationSeconds;
+
+        BroadcastMatchTime(remainingMatchTime);
+
+        Debug.Log(
+            "PARTIDA INICIADA. Duración: "
+            + matchDurationSeconds
+            + " segundos."
+        );
+
+        while (remainingMatchTime > 0 && matchRunning)
+        {
+            yield return new WaitForSeconds(1f);
+
+            remainingMatchTime--;
+
+            BroadcastMatchTime(remainingMatchTime);
+        }
+
+        if (!matchRunning)
+            yield break;
+
+        matchRunning = false;
+
+        Debug.Log("TIEMPO TERMINADO.");
+
+        BroadcastScoreState();
+        BroadcastMatchFinished();
+    }
+
+    private void BroadcastMatchTime(int seconds)
+    {
+        LatestMatchTime = seconds;
+
+        NetworkMessage message = new NetworkMessage
+        {
+            type = "MatchTime",
+            data = seconds.ToString()
+        };
+
+        lock (clientsLock)
+        {
+            foreach (ClientConnection client in clients)
+            {
+                SendMessage(client, message);
+            }
+        }
+
+        OnMatchTimeReceived?.Invoke(seconds);
+    }
+
+
+    private void BroadcastMatchFinished()
+    {
+        NetworkMessage message = new NetworkMessage
+        {
+            type = "MatchFinished",
+            data = ""
+        };
+
+        lock (clientsLock)
+        {
+            foreach (ClientConnection client in clients)
+            {
+                SendMessage(client, message);
+            }
+        }
+
+        OnMatchFinished?.Invoke();
+    }
+
 
     // ---------------------------------------------------------
     // DESCONEXIÓN
@@ -317,6 +641,8 @@ public class LobbyServer : MonoBehaviour
                 players.Remove(player);
             }
 
+            playerScores.Remove(connection.PlayerId);
+
             BroadcastPlayerList();
         }
 
@@ -324,7 +650,48 @@ public class LobbyServer : MonoBehaviour
             "Jugador desconectado: " +
             connection.PlayerName
         );
+
+        // Actualizar el ranking de los jugadores que siguen conectados.
+        BroadcastScoreState();
+
+        if (matchRunning && players.Count < 2)
+        {
+            mainThreadActions.Enqueue(
+                () => CancelMatchBecauseOfConnection()
+            );
+        }
     }
+
+    private void CancelMatchBecauseOfConnection()
+    {
+        if (!matchRunning)
+            return;
+
+        matchRunning = false;
+
+        if (matchTimerCoroutine != null)
+        {
+            StopCoroutine(matchTimerCoroutine);
+            matchTimerCoroutine = null;
+        }
+
+        NetworkMessage message = new NetworkMessage
+        {
+            type = "MatchCancelled",
+            data = ""
+        };
+
+        lock (clientsLock)
+        {
+            foreach (ClientConnection client in clients)
+            {
+                SendMessage(client, message);
+            }
+        }
+
+        OnMatchCancelled?.Invoke();
+    }
+
 
     // ---------------------------------------------------------
     // DETENER SERVIDOR
@@ -405,8 +772,7 @@ public class LobbyServer : MonoBehaviour
             tcpClient = client;
             server = lobbyServer;
 
-            NetworkStream stream =
-                tcpClient.GetStream();
+            NetworkStream stream =  tcpClient.GetStream();
 
             reader =
                 new StreamReader(
@@ -450,6 +816,24 @@ public class LobbyServer : MonoBehaviour
 
                         server.BroadcastPlayerState(message);
                     }
+                    else if (message.type == "CheeseCollectRequest")
+                    {
+                        CheeseCollectRequestData request =
+                            JsonUtility.FromJson<CheeseCollectRequestData>(
+                                message.data
+                            );
+
+                        if (request != null)
+                        {
+                            // El servidor decide quién es realmente
+                            int realPlayerId = PlayerId;
+
+                            server.ReceiveCheeseCollectRequest(
+                                realPlayerId,
+                                request.cheeseId
+                            );
+                        }
+                    }
                 }
             }
             catch
@@ -484,11 +868,6 @@ public class LobbyServer : MonoBehaviour
             cantidadJugadores = players.Count;
         }
 
-        if (cantidadJugadores < 2 || cantidadJugadores > 4)
-        {
-            Debug.Log("No se puede iniciar. Se necesitan entre 2 y 4 jugadores.");
-            return;
-        }
 
         CrearAsignacionDeSpawns();
 
@@ -515,7 +894,11 @@ public class LobbyServer : MonoBehaviour
 
         EnviarCuentaRegresiva("¡A JUGAR!");
 
-        yield return new WaitForSeconds(1f);
+        yield return new WaitForSeconds(1.2f);
+
+        StartMatchTimer();
+
+        BroadcastScoreState();
     }
 
     private void EnviarCuentaRegresiva(string mensaje)
@@ -538,7 +921,6 @@ public class LobbyServer : MonoBehaviour
             }
         }
 
-        Debug.Log("Cuenta regresiva: " + mensaje);
     }
 
     private void CrearAsignacionDeSpawns()
@@ -553,26 +935,20 @@ public class LobbyServer : MonoBehaviour
             return;
         }
 
-        List<int> spawnIndexes =
-            Enumerable.Range(0, 4).ToList();
+        List<int> spawnIndexes = Enumerable.Range(0, 4).ToList();
 
         for (int i = spawnIndexes.Count - 1; i > 0; i--)
         {
-            int randomIndex =
-                UnityEngine.Random.Range(0, i + 1);
+            int randomIndex = UnityEngine.Random.Range(0, i + 1);
 
-            int temporal =
-                spawnIndexes[i];
+            int temporal = spawnIndexes[i];
 
-            spawnIndexes[i] =
-                spawnIndexes[randomIndex];
+            spawnIndexes[i] = spawnIndexes[randomIndex];
 
-            spawnIndexes[randomIndex] =
-                temporal;
+            spawnIndexes[randomIndex] = temporal;
         }
 
-        NetworkSession session =
-            NetworkSession.Instance;
+        NetworkSession session = NetworkSession.Instance;
 
         if (session == null)
         {
@@ -587,8 +963,7 @@ public class LobbyServer : MonoBehaviour
 
         for (int i = 0; i < players.Count; i++)
         {
-            LobbyPlayer player =
-                players[i];
+            LobbyPlayer player = players[i];
 
             session.AddPlayer(
                 player.playerId,
@@ -597,8 +972,7 @@ public class LobbyServer : MonoBehaviour
             );
         }
 
-        string json =
-            session.GetPlayersJson();
+        string json = session.GetPlayersJson();
 
         Debug.Log(
             "Asignación de spawns creada:"
@@ -608,8 +982,7 @@ public class LobbyServer : MonoBehaviour
 
         OnSpawnAssignmentsReady?.Invoke(json);
 
-        NetworkMessage message =
-            new NetworkMessage
+        NetworkMessage message = new NetworkMessage
             {
                 type = "SpawnAssignments",
                 data = json

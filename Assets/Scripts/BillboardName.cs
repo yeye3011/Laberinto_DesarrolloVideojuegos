@@ -14,9 +14,10 @@ public class BillboardName : MonoBehaviour
                 return;
         }
 
-        transform.LookAt(
-            transform.position + camara.transform.rotation * Vector3.forward,
-            camara.transform.rotation * Vector3.up
-        );
+        transform.rotation =
+            Quaternion.LookRotation(
+                camara.transform.position - transform.position,
+                Vector3.up
+            );
     }
 }

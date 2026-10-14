@@ -10,8 +10,8 @@ public class MenuManager : MonoBehaviour
     public float escalaMaxima = 1.15f;
 
     [Header("Efecto de Sonido")]
-    public AudioSource audioSource; // Componente AudioSource
-    public AudioClip sonidoClic;    // Tu clip de audio 'BotonInicio'
+    public AudioSource audioSource; 
+    public AudioClip sonidoClic;    
 
     private Vector3 escalaOriginal;
 
@@ -22,7 +22,6 @@ public class MenuManager : MonoBehaviour
             escalaOriginal = botonIniciar.localScale;
         }
 
-        // Si no asignas un AudioSource manualmente, intentará obtener uno en el objeto
         if (audioSource == null)
         {
             audioSource = GetComponent<AudioSource>();

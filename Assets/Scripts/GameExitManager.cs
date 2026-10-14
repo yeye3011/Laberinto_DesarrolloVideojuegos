@@ -5,11 +5,9 @@ public class GameExitManager : MonoBehaviour
 {
     public void SalirAlMenu()
     {
-        LobbyServer lobbyServer =
-            FindFirstObjectByType<LobbyServer>();
+        LobbyServer lobbyServer = FindFirstObjectByType<LobbyServer>();
 
-        LobbyClient lobbyClient =
-            FindFirstObjectByType<LobbyClient>();
+        LobbyClient lobbyClient = FindFirstObjectByType<LobbyClient>();
 
         // Detener servidor si somos el host
         if (lobbyServer != null &&

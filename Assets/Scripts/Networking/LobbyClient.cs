@@ -18,8 +18,10 @@ public class LobbyClient : MonoBehaviour
     private Thread receiveThread;
 
     private bool isConnected;
+    private string latestCheeseStateJson;
 
     public bool IsConnected => isConnected;
+    public string LatestCheeseStateJson => latestCheeseStateJson;
 
     public event Action<string> OnPlayerListReceived;
     public event Action OnConnectionFailed;
@@ -27,6 +29,19 @@ public class LobbyClient : MonoBehaviour
     public event Action<string> OnCountdownMessageReceived;
     public event Action<string> OnSpawnAssignmentsReceived;
     public event Action<string> OnPlayerStateReceived;
+    public event Action<string> OnCheeseStateReceived;
+    public event Action<int> OnCheeseRemoved;
+    public event Action<string> OnCheeseSpawned;
+    public event Action<string> OnSpeedEffectReceived;
+    public event Action<string> OnFreezeEffectReceived;
+
+    public event Action<string> OnScoreStateReceived;
+    public string LatestScoreState { get; private set; } = "";
+    public event Action<int> OnMatchTimeReceived;
+    public int LatestMatchTime { get; private set; } = -1;
+    public event Action OnMatchFinished;
+    public event Action OnMatchCancelled;
+
 
     // ---------------------------------------------------------
     // CONECTAR
@@ -58,8 +73,7 @@ public class LobbyClient : MonoBehaviour
 
             Debug.Log("DIAGNOSTICO: TcpClient creado.");
 
-            IAsyncResult connectionResult =
-                client.BeginConnect(hostIP, port, null, null);
+            IAsyncResult connectionResult = client.BeginConnect(hostIP, port, null, null);
 
             Debug.Log("DIAGNOSTICO: BeginConnect ejecutado.");
 
@@ -177,9 +191,6 @@ public class LobbyClient : MonoBehaviour
 
     private void ProcessMessage(NetworkMessage message)
     {
-        if (message == null)
-            return;
-
         switch (message.type)
         {
             case "Welcome":
@@ -201,11 +212,19 @@ public class LobbyClient : MonoBehaviour
                 break;
 
             case "PlayerList":
-                OnPlayerListReceived?.Invoke(message.data);
+
+                OnPlayerListReceived?.Invoke(
+                    message.data
+                );
+
                 break;
 
             case "Countdown":
-                OnCountdownMessageReceived?.Invoke(message.data);
+
+                OnCountdownMessageReceived?.Invoke(
+                    message.data
+                );
+
                 break;
 
             case "SpawnAssignments":
@@ -221,8 +240,126 @@ public class LobbyClient : MonoBehaviour
                 break;
 
             case "PlayerState":
-                OnPlayerStateReceived?.Invoke(message.data);
+
+                OnPlayerStateReceived?.Invoke(
+                    message.data
+                );
+
                 break;
+
+            case "CheeseState":
+
+                Debug.Log(
+                    "Estado de quesos recibido."
+                );
+
+                latestCheeseStateJson =
+                    message.data;
+
+                OnCheeseStateReceived?.Invoke(
+                    message.data
+                );
+
+                break;
+
+            case "CheeseRemoved":
+
+                Debug.Log(
+                    "Queso eliminado recibido. ID = "
+                    + message.data
+                );
+
+                int removedCheeseId;
+
+                if (int.TryParse(
+                    message.data,
+                    out removedCheeseId))
+                {
+                    OnCheeseRemoved?.Invoke(
+                        removedCheeseId
+                    );
+                }
+
+                break;
+
+            case "CheeseSpawned":
+
+                Debug.Log(
+                    "Nuevo queso recibido."
+                );
+
+                OnCheeseSpawned?.Invoke(
+                    message.data
+                );
+
+                break;
+
+            case "SpeedEffect":
+
+                Debug.Log("Efecto de velocidad recibido.");
+
+                OnSpeedEffectReceived?.Invoke(message.data);
+
+                break;
+
+            case "FreezeEffect":
+
+                Debug.Log("Efecto de congelamiento recibido.");
+
+                OnFreezeEffectReceived?.Invoke(message.data);
+
+                break;
+
+            case "ScoreState":
+
+                LatestScoreState = message.data;
+
+                Debug.Log("Ranking actualizado recibido.");
+
+                OnScoreStateReceived?.Invoke(message.data);
+
+                break;
+
+
+            case "MatchTime":
+
+                int seconds;
+
+                if (int.TryParse(message.data, out seconds))
+                {
+                    LatestMatchTime = seconds;
+                    OnMatchTimeReceived?.Invoke(seconds);
+                }
+                else
+                {
+                    Debug.LogWarning(
+                        "LobbyClient: tiempo recibido inválido: "
+                        + message.data
+                    );
+                }
+
+                break;
+
+
+            case "MatchFinished":
+
+                Debug.Log("La partida ha terminado.");
+
+                OnMatchFinished?.Invoke();
+
+                break;
+
+
+            case "MatchCancelled":
+
+                Debug.LogWarning(
+                    "La partida fue cancelada por desconexión."
+                );
+
+                OnMatchCancelled?.Invoke();
+
+                break;
+
         }
     }
 
@@ -268,6 +405,46 @@ public class LobbyClient : MonoBehaviour
         SendMessage(message);
     }
 
+
+    // ---------------------------------------------------------
+    // RECOGER QUESO
+    // ---------------------------------------------------------
+
+    public void SendCheeseCollectRequest(
+        int cheeseId,
+        int playerId)
+    {
+        if (!isConnected)
+        {
+            Debug.LogWarning(
+                "LobbyClient: no conectado, no se puede recoger el queso."
+            );
+
+            return;
+        }
+
+        CheeseCollectRequestData request = new CheeseCollectRequestData
+            {
+                cheeseId = cheeseId,
+                playerId = playerId
+            };
+
+        NetworkMessage message =
+            new NetworkMessage
+            {
+                type = "CheeseCollectRequest",
+                data = JsonUtility.ToJson(request)
+            };
+
+        SendMessage(message);
+
+        Debug.Log(
+            "CLIENTE: solicitud de recoger queso ID "
+            + cheeseId
+            + " enviada."
+        );
+    }
+
     // ---------------------------------------------------------
     // DESCONECTAR
     // ---------------------------------------------------------
@@ -291,6 +468,8 @@ public class LobbyClient : MonoBehaviour
         {
             receiveThread.Join(200);
         }
+
+        latestCheeseStateJson = null;
 
         Debug.Log("Cliente desconectado.");
     }

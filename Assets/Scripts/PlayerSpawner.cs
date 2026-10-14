@@ -42,9 +42,6 @@ public class PlayerSpawner : MonoBehaviour
 
         if (playerPrefab == null)
         {
-            Debug.LogError(
-                "PlayerSpawner: falta asignar Player Prefab."
-            );
 
             return;
         }

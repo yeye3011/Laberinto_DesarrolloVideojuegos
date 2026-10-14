@@ -4,7 +4,7 @@ using UnityEngine.InputSystem;
 public class PlayerMovement : MonoBehaviour
 {
     [Header("Movimiento")]
-    [SerializeField] private float moveSpeed = 12f;
+    [SerializeField] private float moveSpeed = 20f;
 
     [Header("Rotación")]
     [SerializeField] private float rotationSpeed = 60f;
@@ -17,13 +17,19 @@ public class PlayerMovement : MonoBehaviour
 
     private CharacterController characterController;
 
+    private float velocidadOriginal;
+    private Coroutine corrutinaVelocidad;
+
     // Indica si este jugador puede recibir el joystick local.
     private bool isLocalPlayer = true;
+    private bool isFrozen = false;
     public bool IsLocalPlayer => isLocalPlayer;
     public int CurrentState { get; private set; }
 
     private void Awake()
     {
+        velocidadOriginal = moveSpeed;
+
         characterController = GetComponent<CharacterController>();
 
         if (animator == null)
@@ -61,11 +67,19 @@ public class PlayerMovement : MonoBehaviour
     private void Update()
     {
         // Los jugadores remotos NO reciben el joystick de este dispositivo.
-        if (!isLocalPlayer)
-            return;
+        if (!isLocalPlayer) return;
 
-        if (moveAction == null)
+        if (isFrozen)
+        {
+            CurrentState = 0;
+
+            if (animator != null)
+                animator.SetBool("IsMoving", false);
+
             return;
+        }
+
+        if (moveAction == null) return;
 
         Vector2 input = moveAction.action.ReadValue<Vector2>();
 
@@ -106,5 +120,51 @@ public class PlayerMovement : MonoBehaviour
                 direction * moveSpeed * Time.deltaTime
             );
         }
+    }
+
+
+    public void ActivarVelocidad(float multiplicador, float duracion)
+    {
+        if (corrutinaVelocidad != null)
+        {
+            StopCoroutine(corrutinaVelocidad);
+        }
+
+        corrutinaVelocidad = StartCoroutine(
+            EfectoVelocidad(multiplicador, duracion)
+        );
+    }
+
+    private System.Collections.IEnumerator EfectoVelocidad(
+        float multiplicador,
+        float duracion)
+    {
+        moveSpeed = velocidadOriginal * multiplicador;
+
+        yield return new WaitForSeconds(duracion);
+
+        moveSpeed = velocidadOriginal;
+        corrutinaVelocidad = null;
+    }
+
+    public void DesactivarVelocidad()
+    {
+        if (corrutinaVelocidad != null)
+        {
+            StopCoroutine(corrutinaVelocidad);
+            corrutinaVelocidad = null;
+        }
+
+        moveSpeed = velocidadOriginal;
+    }
+
+    public void CongelarMovimiento()
+    {
+        isFrozen = true;
+    }
+
+    public void DescongelarMovimiento()
+    {
+        isFrozen = false;
     }
 }
