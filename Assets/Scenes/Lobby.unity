@@ -745,7 +745,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 438605798}
+      - m_Target: {fileID: 1363910296}
         m_TargetAssemblyTypeName: LobbyUI, Assembly-CSharp
         m_MethodName: VolverAlMenu
         m_Mode: 1
@@ -1291,11 +1291,9 @@ GameObject:
   m_Component:
   - component: {fileID: 438605800}
   - component: {fileID: 438605799}
-  - component: {fileID: 438605798}
   - component: {fileID: 438605801}
   - component: {fileID: 438605803}
   - component: {fileID: 438605802}
-  - component: {fileID: 438605804}
   - component: {fileID: 438605805}
   m_Layer: 0
   m_Name: NetworkManager
@@ -1304,42 +1302,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &438605798
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 438605797}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7320f0ac3411f3a41bf59f5d5507108d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::LobbyUI
-  hostNameInput: {fileID: 1961208330}
-  lobbyServer: {fileID: 438605799}
-  iniciarPartidaButton: {fileID: 1838053561}
-  textoIniciarPartida: {fileID: 1463424339}
-  hostIPText: {fileID: 1639366116}
-  mensajeIPCopiada: {fileID: 346960677}
-  playerCountText: {fileID: 620865417}
-  playerListText: {fileID: 571911691}
-  lobbyClient: {fileID: 438605801}
-  mensajeEspera: {fileID: 670018292}
-  clientNameInput: {fileID: 1524465781}
-  clientIPInput: {fileID: 38559602}
-  mensajeSalaNoDisponible: {fileID: 1939198469}
-  clientPlayerCountText: {fileID: 1590601730}
-  clientPlayerListText: {fileID: 1592157178}
-  mensajeEsperaCliente: {fileID: 110136197}
-  seleccionModo: {fileID: 988744770}
-  hostInicio: {fileID: 961199512}
-  hostEspera: {fileID: 1987225204}
-  jugadoresInicio: {fileID: 1204511933}
-  jugadoresEspera: {fileID: 2090810474}
-  cuentaRegresiva: {fileID: 1362918692}
-  mensajeCuentaRegresiva: {fileID: 1312521364}
-  audioCuentaRegresiva: {fileID: 438605804}
 --- !u!114 &438605799
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1363,7 +1325,7 @@ Transform:
   m_GameObject: {fileID: 438605797}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 961.46155, y: 469.43616, z: 0.10603}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1408,103 +1370,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7236ad4f756d91740bb45ca242b5d58d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NetworkPersistence
---- !u!82 &438605804
-AudioSource:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 438605797}
-  m_Enabled: 1
-  serializedVersion: 4
-  OutputAudioMixerGroup: {fileID: 0}
-  m_audioClip: {fileID: 0}
-  m_Resource: {fileID: 8300000, guid: c58e519f4f049f7488971c12598a614e, type: 3}
-  m_PlayOnAwake: 0
-  m_Volume: 1
-  m_Pitch: 1
-  Loop: 0
-  Mute: 0
-  Spatialize: 0
-  SpatializePostEffects: 0
-  Priority: 128
-  DopplerLevel: 1
-  MinDistance: 1
-  MaxDistance: 500
-  Pan2D: 0
-  rolloffMode: 0
-  BypassEffects: 0
-  BypassListenerEffects: 0
-  BypassReverbZones: 0
-  rolloffCustomCurve:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: 0
-      value: 1
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0.33333334
-    - serializedVersion: 3
-      time: 1
-      value: 0
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0.33333334
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
-  panLevelCustomCurve:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: 0
-      value: 0
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0.33333334
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
-  spreadCustomCurve:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: 0
-      value: 0
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0.33333334
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
-  reverbZoneMixCustomCurve:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: 0
-      value: 1
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0.33333334
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
 --- !u!114 &438605805
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1599,7 +1464,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 438605798}
+      - m_Target: {fileID: 1363910296}
         m_TargetAssemblyTypeName: LobbyUI, Assembly-CSharp
         m_MethodName: VolverAlMenu
         m_Mode: 1
@@ -2486,7 +2351,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 438605798}
+      - m_Target: {fileID: 1363910296}
         m_TargetAssemblyTypeName: LobbyUI, Assembly-CSharp
         m_MethodName: CrearSala
         m_Mode: 1
@@ -3029,7 +2894,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 438605798}
+      - m_Target: {fileID: 1363910296}
         m_TargetAssemblyTypeName: LobbyUI, Assembly-CSharp
         m_MethodName: VolverAlMenu
         m_Mode: 1
@@ -3670,7 +3535,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 438605798}
+      - m_Target: {fileID: 1363910296}
         m_TargetAssemblyTypeName: LobbyUI, Assembly-CSharp
         m_MethodName: MostrarHostInicio
         m_Mode: 1
@@ -3803,7 +3668,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 438605798}
+      - m_Target: {fileID: 1363910296}
         m_TargetAssemblyTypeName: LobbyUI, Assembly-CSharp
         m_MethodName: MostrarJugadoresInicio
         m_Mode: 1
@@ -4885,7 +4750,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 438605798}
+      - m_Target: {fileID: 1363910296}
         m_TargetAssemblyTypeName: LobbyUI, Assembly-CSharp
         m_MethodName: CopiarIP
         m_Mode: 1
@@ -5018,7 +4883,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 438605798}
+      - m_Target: {fileID: 1363910296}
         m_TargetAssemblyTypeName: LobbyUI, Assembly-CSharp
         m_MethodName: UnirseSala
         m_Mode: 1
@@ -5418,6 +5283,172 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1362918692}
   m_CullTransparentMesh: 1
+--- !u!1 &1363910294
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1363910297}
+  - component: {fileID: 1363910296}
+  - component: {fileID: 1363910295}
+  m_Layer: 0
+  m_Name: LobbyUI_Scene
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!82 &1363910295
+AudioSource:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1363910294}
+  m_Enabled: 1
+  serializedVersion: 4
+  OutputAudioMixerGroup: {fileID: 0}
+  m_audioClip: {fileID: 0}
+  m_Resource: {fileID: 8300000, guid: c58e519f4f049f7488971c12598a614e, type: 3}
+  m_PlayOnAwake: 0
+  m_Volume: 1
+  m_Pitch: 1
+  Loop: 0
+  Mute: 0
+  Spatialize: 0
+  SpatializePostEffects: 0
+  Priority: 128
+  DopplerLevel: 1
+  MinDistance: 1
+  MaxDistance: 500
+  Pan2D: 0
+  rolloffMode: 0
+  BypassEffects: 0
+  BypassListenerEffects: 0
+  BypassReverbZones: 0
+  rolloffCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  panLevelCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  spreadCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  reverbZoneMixCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+--- !u!114 &1363910296
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1363910294}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7320f0ac3411f3a41bf59f5d5507108d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LobbyUI
+  hostNameInput: {fileID: 1961208330}
+  lobbyServer: {fileID: 438605799}
+  iniciarPartidaButton: {fileID: 1838053561}
+  textoIniciarPartida: {fileID: 1463424339}
+  hostIPText: {fileID: 1639366116}
+  mensajeIPCopiada: {fileID: 346960677}
+  playerCountText: {fileID: 620865417}
+  playerListText: {fileID: 571911691}
+  lobbyClient: {fileID: 438605801}
+  mensajeEspera: {fileID: 670018292}
+  clientNameInput: {fileID: 1524465781}
+  clientIPInput: {fileID: 38559602}
+  mensajeSalaNoDisponible: {fileID: 1939198469}
+  clientPlayerCountText: {fileID: 1590601730}
+  clientPlayerListText: {fileID: 1592157178}
+  mensajeEsperaCliente: {fileID: 110136197}
+  seleccionModo: {fileID: 988744770}
+  hostInicio: {fileID: 961199512}
+  hostEspera: {fileID: 1987225204}
+  jugadoresInicio: {fileID: 1204511933}
+  jugadoresEspera: {fileID: 2090810474}
+  cuentaRegresiva: {fileID: 1362918692}
+  mensajeCuentaRegresiva: {fileID: 1312521364}
+  audioCuentaRegresiva: {fileID: 1363910295}
+--- !u!4 &1363910297
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1363910294}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1463424337
 GameObject:
   m_ObjectHideFlags: 0
@@ -6380,7 +6411,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 438605798}
+      - m_Target: {fileID: 1363910296}
         m_TargetAssemblyTypeName: LobbyUI, Assembly-CSharp
         m_MethodName: VolverAlMenu
         m_Mode: 1
@@ -6866,7 +6897,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 438605798}
+      - m_Target: {fileID: 1363910296}
         m_TargetAssemblyTypeName: LobbyUI, Assembly-CSharp
         m_MethodName: IniciarPartida
         m_Mode: 1
@@ -7445,19 +7476,7 @@ MonoBehaviour:
       m_Calls: []
   m_OnValueChanged:
     m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 438605798}
-        m_TargetAssemblyTypeName: LobbyUI, Assembly-CSharp
-        m_MethodName: NombreHostEscrito
-        m_Mode: 5
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
+      m_Calls: []
   m_OnTouchScreenKeyboardStatusChanged:
     m_PersistentCalls:
       m_Calls: []
@@ -7684,7 +7703,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 438605798}
+      - m_Target: {fileID: 1363910296}
         m_TargetAssemblyTypeName: LobbyUI, Assembly-CSharp
         m_MethodName: VolverAlMenu
         m_Mode: 1
@@ -7824,3 +7843,4 @@ SceneRoots:
   - {fileID: 1218920624}
   - {fileID: 1780156384}
   - {fileID: 438605800}
+  - {fileID: 1363910297}

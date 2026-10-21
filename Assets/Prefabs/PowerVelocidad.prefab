@@ -47,7 +47,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpeedCheeseAnimation
   visualRoot: {fileID: 4713844693766410697}
-  rotationSpeed: 100
+  rotationSpeed: 120
 --- !u!65 &8589009684458294590
 BoxCollider:
   m_ObjectHideFlags: 0

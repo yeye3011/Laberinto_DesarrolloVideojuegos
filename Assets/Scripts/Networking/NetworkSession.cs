@@ -17,31 +17,80 @@ public class NetworkSession : MonoBehaviour
     [Serializable]
     private class PlayerDataList
     {
-        public List<PlayerData> players =
-            new List<PlayerData>();
+        public List<PlayerData> players = new List<PlayerData>();
     }
 
     [Header("Datos de la partida")]
     [SerializeField] private int localPlayerId;
 
     [SerializeField]
-    private List<PlayerData> players =
-        new List<PlayerData>();
+    private List<PlayerData> players = new List<PlayerData>();
 
     public int LocalPlayerId => localPlayerId;
 
     public List<PlayerData> Players => players;
 
+
     private void Awake()
     {
+        Debug.LogError(
+            "NETWORK SESSION AWAKE | Objeto: " + gameObject.name +
+            " | ID: " + GetInstanceID() +
+            " | Escena: " + gameObject.scene.name +
+            " | Instancia existente: " +
+            (Instance != null) +
+            (Instance != null
+                ? " | ID existente: " + Instance.GetInstanceID()
+                : "")
+        );
+
+
         if (Instance != null && Instance != this)
         {
+            Debug.LogError(
+                "DUPLICADO | Objeto: " + gameObject.name +
+                " | ID: " + GetInstanceID() +
+                " | Escena: " + gameObject.scene.name +
+                " | Objeto de la instancia conservada: " +
+                Instance.gameObject.name +
+                " | ID conservado: " + Instance.GetInstanceID()
+            );
+
+            LobbyServer servidor = GetComponent<LobbyServer>();
+            LobbyClient cliente = GetComponent<LobbyClient>();
+            NetworkPersistence persistencia =
+                GetComponent<NetworkPersistence>();
+
+            Debug.LogError(
+                "COMPONENTES EN EL OBJETO DUPLICADO | " +
+                "LobbyServer: " + (servidor != null) +
+                " | IsRunning: " +
+                (servidor != null && servidor.IsRunning) +
+                " | LobbyClient: " + (cliente != null) +
+                " | NetworkPersistence: " + (persistencia != null)
+            );
+
+            Debug.LogError(
+                "OBJETO CONSERVADO | " +
+                Instance.gameObject.name +
+                " | Escena: " + Instance.gameObject.scene.name +
+                " | ¿Persiste entre escenas?: " +
+                (Instance.gameObject.scene.name == "DontDestroyOnLoad")
+            );
+
             Destroy(gameObject);
             return;
         }
 
+
         Instance = this;
+
+        Debug.LogError(
+            "NETWORK SESSION PRINCIPAL: " + gameObject.name +
+            " | ID: " + GetInstanceID()
+        );
     }
+
 
     public void SetLocalPlayerId(int id)
     {
@@ -57,10 +106,7 @@ public class NetworkSession : MonoBehaviour
         players.Clear();
     }
 
-    public void AddPlayer(
-        int id,
-        string name,
-        int spawnIndex)
+    public void AddPlayer(int id, string name, int spawnIndex)
     {
         players.Add(new PlayerData
         {
@@ -72,15 +118,12 @@ public class NetworkSession : MonoBehaviour
 
     public PlayerData GetPlayer(int id)
     {
-        return players.Find(
-            player => player.playerId == id
-        );
+        return players.Find(player => player.playerId == id);
     }
 
     public string GetPlayersJson()
     {
-        PlayerDataList data =
-            new PlayerDataList();
+        PlayerDataList data = new PlayerDataList();
 
         data.players.AddRange(players);
 
@@ -98,8 +141,7 @@ public class NetworkSession : MonoBehaviour
             return;
         }
 
-        PlayerDataList data =
-            JsonUtility.FromJson<PlayerDataList>(json);
+        PlayerDataList data = JsonUtility.FromJson<PlayerDataList>(json);
 
         if (data == null || data.players == null)
         {

@@ -10,9 +10,7 @@ public class NetworkCheeseIdentity : MonoBehaviour
     public int CheeseId => cheeseId;
     public string CheeseType => cheeseType;
 
-    public void SetIdentity(
-        int id,
-        string type)
+    public void SetIdentity(int id, string type)
     {
         cheeseId = id;
         cheeseType = type;

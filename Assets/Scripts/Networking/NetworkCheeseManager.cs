@@ -31,25 +31,16 @@ public class NetworkCheeseManager : MonoBehaviour
     private readonly Dictionary<int, Coroutine> speedEffectCoroutines = new Dictionary<int, Coroutine>();
     private readonly Dictionary<int, int> speedEffectVersions = new Dictionary<int, int>();
 
-    // =========================================================
     // SOLICITUDES DE RECOLECCIÓN
-    // =========================================================
-
-    private readonly Queue<CheeseCollectRequestData>
-        pendingCollectRequests = new Queue<CheeseCollectRequestData>();
+    private readonly Queue<CheeseCollectRequestData> pendingCollectRequests = new Queue<CheeseCollectRequestData>();
 
     private readonly object collectQueueLock = new object();
 
-    // =========================================================
     // QUESOS ACTIVOS DEL HOST
-    // =========================================================
-
     private readonly Dictionary<int, NetworkCheeseData> activeCheeses = new Dictionary<int, NetworkCheeseData>();
+    private readonly HashSet<int> cheesesBeingProcessed = new HashSet<int>();
 
-    // =========================================================
     // INICIO
-    // =========================================================
-
     private void Start()
     {
         lobbyServer = FindFirstObjectByType<LobbyServer>();
@@ -63,12 +54,8 @@ public class NetworkCheeseManager : MonoBehaviour
             cheeseSpawner = FindFirstObjectByType<CheeseSpawner>();
         }
 
-        // =====================================================
         // HOST
-        // =====================================================
-
-        if (lobbyServer != null &&
-            lobbyServer.IsRunning)
+        if (lobbyServer != null && lobbyServer.IsRunning)
         {
             isHost = true;
 
@@ -78,19 +65,13 @@ public class NetworkCheeseManager : MonoBehaviour
 
             lobbyServer.OnCheeseCollectRequestReceived += ReceiveCollectRequestFromServer;
 
-            StartCoroutine(
-                InitializeHost()
-            );
+            StartCoroutine(InitializeHost());
 
             return;
         }
 
-        // =====================================================
         // CLIENTE
-        // =====================================================
-
-        if (lobbyClient != null &&
-            lobbyClient.IsConnected)
+        if (lobbyClient != null && lobbyClient.IsConnected)
         {
             isHost = false;
 
@@ -121,10 +102,7 @@ public class NetworkCheeseManager : MonoBehaviour
         );
     }
 
-    // =========================================================
     // INICIALIZAR HOST
-    // =========================================================
-
     private IEnumerator InitializeHost()
     {
         yield return null;
@@ -134,13 +112,9 @@ public class NetworkCheeseManager : MonoBehaviour
 
         activeCheeses.Clear();
 
-        foreach (
-            NetworkCheeseData cheese
-            in cheeses)
+        foreach (NetworkCheeseData cheese in cheeses)
         {
-            activeCheeses[
-                cheese.cheeseId
-            ] = cheese;
+            activeCheeses[cheese.cheeseId] = cheese;
         }
 
         NetworkCheeseList packet = new NetworkCheeseList
@@ -159,25 +133,17 @@ public class NetworkCheeseManager : MonoBehaviour
         if (lobbyServer != null &&
             lobbyServer.IsRunning)
         {
-            lobbyServer.BroadcastCheeseState(
-                json
-            );
+            lobbyServer.BroadcastCheeseState(json);
         }
     }
 
-    // =========================================================
     // RECIBIR ESTADO INICIAL
-    // =========================================================
-
     private void ReceiveCheeseState(string json)
     {
         pendingCheeseJson = json;
     }
 
-    // =========================================================
     // RECIBIR SOLICITUD DESDE SERVIDOR
-    // =========================================================
-
     private void ReceiveCollectRequestFromServer(int playerId, int cheeseId)
     {
         CheeseCollectRequestData request = new CheeseCollectRequestData
@@ -188,22 +154,14 @@ public class NetworkCheeseManager : MonoBehaviour
 
         lock (collectQueueLock)
         {
-            pendingCollectRequests.Enqueue(
-                request
-            );
+            pendingCollectRequests.Enqueue(request);
         }
     }
 
-    // =========================================================
     // SOLICITUD DESDE CHEESEPICKUP
-    // =========================================================
-
     public void RequestCheeseCollection(int cheeseId, int playerId)
     {
-        // =====================================================
         // HOST
-        // =====================================================
-
         if (isHost)
         {
             Debug.Log(
@@ -211,20 +169,13 @@ public class NetworkCheeseManager : MonoBehaviour
                 + cheeseId
             );
 
-            ProcessCheeseCollection(
-                playerId,
-                cheeseId
-            );
+            ProcessCheeseCollection(playerId, cheeseId);
 
             return;
         }
 
-        // =====================================================
         // CLIENTE
-        // =====================================================
-
-        if (lobbyClient == null ||
-            !lobbyClient.IsConnected)
+        if (lobbyClient == null || !lobbyClient.IsConnected)
         {
             Debug.LogWarning(
                 "NetworkCheeseManager: cliente no conectado."
@@ -233,16 +184,10 @@ public class NetworkCheeseManager : MonoBehaviour
             return;
         }
 
-        lobbyClient.SendCheeseCollectRequest(
-            cheeseId,
-            playerId
-        );
+        lobbyClient.SendCheeseCollectRequest(cheeseId, playerId);
     }
 
-    // =========================================================
     // UPDATE
-    // =========================================================
-
     private void Update()
     {
         // Estado inicial recibido
@@ -267,10 +212,7 @@ public class NetworkCheeseManager : MonoBehaviour
         ProcessPendingFreezeEffects(); 
     }
 
-    // =========================================================
     // PROCESAR COLAS DE RECOLECCIÓN
-    // =========================================================
-
     private void ProcessPendingCollectRequests()
     {
         while (true)
@@ -288,199 +230,164 @@ public class NetworkCheeseManager : MonoBehaviour
             if (request == null)
                 break;
 
-            ProcessCheeseCollection(
-                request.playerId,
-                request.cheeseId
-            );
+            ProcessCheeseCollection(request.playerId, request.cheeseId);
         }
     }
 
-    // =========================================================
     // VALIDAR Y RECOGER
-    // =========================================================
 
     private void ProcessCheeseCollection(int playerId, int cheeseId)
     {
         if (!isHost)
             return;
 
-        // =====================================================
-        // ¿EXISTE EL QUESO?
-        // =====================================================
-
-        if (!activeCheeses.ContainsKey(cheeseId))
+        if (!activeCheeses.TryGetValue(cheeseId, out NetworkCheeseData cheeseData))
         {
             Debug.LogWarning(
-                "HOST: intento de recoger queso inexistente. ID = "
-                + cheeseId
+                "HOST: queso inexistente o ya recogido. ID = " + cheeseId
             );
-
             return;
         }
 
-        NetworkCheeseData cheeseData = activeCheeses[cheeseId];
-
-        Debug.Log(
-            "HOST: queso válido recogido. ID = "
-            + cheeseId
-            + " | Tipo = "
-            + cheeseData.cheeseType
-        );
-
-
-        if (cheeseData.cheeseType == "Speed")
+        if (!cheesesBeingProcessed.Add(cheeseId))
         {
-            SpeedEffectData effect = new SpeedEffectData
-            {
-                playerId = playerId,
-                active = true
-            };
-
-            string effectJson = JsonUtility.ToJson(effect);
-
-            // Avisar a los demás jugadores.
-            lobbyServer.BroadcastSpeedEffect(effectJson);
-
-            // Aplicar también el efecto en el anfitrión.
-            ProcessSpeedEffectLocally(effect);
+            Debug.LogWarning(
+                "HOST: solicitud duplicada para el queso ID = " + cheeseId
+            );
+            return;
         }
 
-        if (cheeseData.cheeseType == "Ice")
+        // Retirar inmediatamente el ID antiguo para rechazar solicitudes repetidas.
+        activeCheeses.Remove(cheeseId);
+
+        try
         {
-            NetworkSession session = NetworkSession.Instance;
+            Debug.Log(
+                "RECOGIDA VALIDADA | ID: " + cheeseId
+                + " | Tipo: " + cheeseData.cheeseType
+                + " | Jugador: " + playerId
+                + " | Tiempo: " + Time.time
+            );
 
-            if (session == null)
+            if (cheeseData.cheeseType == "Speed")
             {
-                Debug.LogWarning(
-                    "No se encontró NetworkSession para activar el hielo."
-                );
-            }
-            else
-            {
-                NetworkSession.PlayerData activator =
-                    session.GetPlayer(playerId);
-
-                List<int> frozenIds = new List<int>();
-
-                foreach (NetworkSession.PlayerData player in session.Players)
+                SpeedEffectData effect = new SpeedEffectData
                 {
-                    if (player.playerId != playerId)
-                    {
-                        frozenIds.Add(player.playerId);
-                    }
-                }
-
-                FreezeEffectData effect = new FreezeEffectData
-                {
-                    activatorPlayerId = playerId,
-                    activatorPlayerName = activator != null
-                        ? activator.playerName
-                        : "Un jugador",
-                    frozenPlayerIds = frozenIds.ToArray(),
+                    playerId = playerId,
                     active = true
                 };
 
-                string effectJson = JsonUtility.ToJson(effect);
+                lobbyServer.BroadcastSpeedEffect(JsonUtility.ToJson(effect));
+                ProcessSpeedEffectLocally(effect);
 
-                lobbyServer.BroadcastFreezeEffect(effectJson);
+                if (speedEffectCoroutines.TryGetValue(
+                    playerId, out Coroutine previousCoroutine))
+                {
+                    if (previousCoroutine != null)
+                        StopCoroutine(previousCoroutine);
+                }
 
-                // El host también procesa el efecto en su propia partida.
-                ReceiveFreezeEffect(effectJson);
+                int version = 1;
 
-                Debug.Log(
-                    "HOST: queso de hielo activado. Jugador activador: "
-                    + playerId
-                    + " | Oponentes congelados: "
-                    + frozenIds.Count
-                );
+                if (speedEffectVersions.TryGetValue(
+                    playerId, out int previousVersion))
+                {
+                    version = previousVersion + 1;
+                }
+
+                speedEffectVersions[playerId] = version;
+
+                speedEffectCoroutines[playerId] =
+                    StartCoroutine(EndSpeedEffectAfterDuration(playerId, version));
             }
-        }
 
-        if (speedEffectCoroutines.TryGetValue(playerId, out Coroutine previousCoroutine))
-        {
-            StopCoroutine(previousCoroutine);
-        }
+            if (cheeseData.cheeseType == "Ice")
+            {
+                NetworkSession session = NetworkSession.Instance;
 
-        int version = 1;
+                if (session == null)
+                {
+                    Debug.LogWarning(
+                        "No se encontró NetworkSession para activar el hielo."
+                    );
+                }
+                else
+                {
+                    NetworkSession.PlayerData activator = session.GetPlayer(playerId);
+                    List<int> frozenIds = new List<int>();
 
-        if (speedEffectVersions.TryGetValue(playerId, out int previousVersion))
-        {
-            version = previousVersion + 1;
-        }
+                    foreach (NetworkSession.PlayerData player in session.Players)
+                    {
+                        if (player.playerId != playerId)
+                            frozenIds.Add(player.playerId);
+                    }
 
-        speedEffectVersions[playerId] = version;
+                    FreezeEffectData effect = new FreezeEffectData
+                    {
+                        activatorPlayerId = playerId,
+                        activatorPlayerName = activator != null
+                            ? activator.playerName
+                            : "Un jugador",
+                        frozenPlayerIds = frozenIds.ToArray(),
+                        active = true
+                    };
 
-        speedEffectCoroutines[playerId] = StartCoroutine(EndSpeedEffectAfterDuration(playerId, version));
+                    string effectJson = JsonUtility.ToJson(effect);
+                    lobbyServer.BroadcastFreezeEffect(effectJson);
+                    ReceiveFreezeEffect(effectJson);
 
-        lobbyServer.AddPlayerScore(playerId, 1);
+                    Debug.Log(
+                        "HOST: queso de hielo activado. Jugador activador: "
+                        + playerId
+                        + " | Oponentes congelados: "
+                        + frozenIds.Count
+                    );
+                }
+            }
 
-        // =====================================================
-        // ELIMINAR DEL ESTADO AUTORITATIVO
-        // =====================================================
+            if (AudioManager.Instance != null && cheeseData.cheeseType == "Ice")
+            {
+                AudioManager.Instance.ReproducirEfecto(AudioManager.Instance.PowerupCongelado);
+            }
 
-        activeCheeses.Remove(cheeseId);
+            lobbyServer.AddPlayerScore(playerId, 1);
 
-        // =====================================================
-        // ELIMINAR LOCALMENTE
-        // =====================================================
+            cheeseSpawner.RemoveCheeseById(cheeseId);
+            BroadcastCheeseRemoved(cheeseId);
 
-        cheeseSpawner.RemoveCheeseById(cheeseId);
+            NetworkCheeseData replacement =
+                cheeseSpawner.SpawnReplacementCheese(
+                    cheeseId, cheeseData.cheeseType
+                );
 
-        // =====================================================
-        // AVISAR A CLIENTES
-        // =====================================================
+            if (replacement == null)
+            {
+                Debug.LogError(
+                    "HOST: no se pudo crear reemplazo para el queso ID "
+                    + cheeseId
+                );
+                return;
+            }
 
-        BroadcastCheeseRemoved(cheeseId);
+            activeCheeses[replacement.cheeseId] = replacement;
 
-        // =====================================================
-        // CREAR REEMPLAZO DEL MISMO TIPO
-        // =====================================================
+            BroadcastCheeseSpawned(JsonUtility.ToJson(replacement));
 
-        NetworkCheeseData replacement =
-            cheeseSpawner.SpawnReplacementCheese(
-                cheeseId,
-                cheeseData.cheeseType
+            Debug.Log(
+                "HOST: reemplazo creado. ID = "
+                + replacement.cheeseId
+                + " | Tipo = "
+                + replacement.cheeseType
             );
-
-        if (replacement == null)
-        {
-            Debug.LogError(
-                "HOST: no se pudo crear reemplazo para el queso ID "
-                + cheeseId
-            );
-
-            return;
         }
-
-        activeCheeses[
-            replacement.cheeseId
-        ] = replacement;
-
-        // =====================================================
-        // AVISAR NUEVO QUESO
-        // =====================================================
-
-        string replacementJson =
-            JsonUtility.ToJson(
-                replacement
-            );
-
-        BroadcastCheeseSpawned(
-            replacementJson
-        );
-
-        Debug.Log(
-            "HOST: reemplazo creado. ID = "
-            + replacement.cheeseId
-            + " | Tipo = "
-            + replacement.cheeseType
-        );
+        finally
+        {
+            cheesesBeingProcessed.Remove(cheeseId);
+        }
     }
 
-    // =========================================================
-    // APLICAR ESTADO INICIAL
-    // =========================================================
 
+    // APLICAR ESTADO INICIAL
     private void ApplyCheeseState(string json)
     {
 
@@ -497,10 +404,7 @@ public class NetworkCheeseManager : MonoBehaviour
 
         try
         {
-            packet =
-                JsonUtility.FromJson<NetworkCheeseList>(
-                    json
-                );
+            packet = JsonUtility.FromJson<NetworkCheeseList>(json);
         }
         catch (System.Exception e)
         {
@@ -512,8 +416,7 @@ public class NetworkCheeseManager : MonoBehaviour
             return;
         }
 
-        if (packet == null ||
-            packet.cheeses == null)
+        if (packet == null || packet.cheeses == null)
         {
             Debug.LogError(
                 "NetworkCheeseManager: datos inválidos."
@@ -528,9 +431,7 @@ public class NetworkCheeseManager : MonoBehaviour
             + " quesos."
         );
 
-        cheeseSpawner.ApplyNetworkCheeses(
-            packet.cheeses
-        );
+        cheeseSpawner.ApplyNetworkCheeses(packet.cheeses);
 
         Debug.Log(
             "CLIENTE: aplicación terminada. "
@@ -540,10 +441,7 @@ public class NetworkCheeseManager : MonoBehaviour
 
     }
 
-    // =========================================================
     // QUESO ELIMINADO
-    // =========================================================
-
     private void ReceiveCheeseRemoved(int cheeseId)
     {
         if (isHost)
@@ -554,15 +452,10 @@ public class NetworkCheeseManager : MonoBehaviour
             + cheeseId
         );
 
-        cheeseSpawner.RemoveCheeseById(
-            cheeseId
-        );
+        cheeseSpawner.RemoveCheeseById(cheeseId);
     }
 
-    // =========================================================
     // QUESO REEMPLAZADO
-    // =========================================================
-
     private void ReceiveCheeseSpawned(string json)
     {
         if (isHost)
@@ -575,10 +468,7 @@ public class NetworkCheeseManager : MonoBehaviour
 
         try
         {
-            cheeseData =
-                JsonUtility.FromJson<NetworkCheeseData>(
-                    json
-                );
+            cheeseData = JsonUtility.FromJson<NetworkCheeseData>( json);
         }
         catch (System.Exception e)
         {
@@ -603,44 +493,29 @@ public class NetworkCheeseManager : MonoBehaviour
         cheeseSpawner.ApplySingleNetworkCheese(cheeseData);
     }
 
-    // =========================================================
     // ENVIAR ELIMINACIÓN
-    // =========================================================
-
     private void BroadcastCheeseRemoved(int cheeseId)
     {
-        if (lobbyServer == null ||
-            !lobbyServer.IsRunning)
+        if (lobbyServer == null || !lobbyServer.IsRunning)
         {
             return;
         }
 
-        lobbyServer.BroadcastCheeseRemoved(
-            cheeseId
-        );
+        lobbyServer.BroadcastCheeseRemoved(cheeseId);
     }
 
-    // =========================================================
     // ENVIAR REEMPLAZO
-    // =========================================================
-
     private void BroadcastCheeseSpawned(string json)
     {
-        if (lobbyServer == null ||
-            !lobbyServer.IsRunning)
+        if (lobbyServer == null || !lobbyServer.IsRunning)
         {
             return;
         }
 
-        lobbyServer.BroadcastCheeseSpawned(
-            json
-        );
+        lobbyServer.BroadcastCheeseSpawned(json);
     }
 
-    // =========================================================
     // DESTRUIR
-    // =========================================================
-
     private void OnDestroy()
     {
         if (lobbyServer != null)
@@ -680,7 +555,6 @@ public class NetworkCheeseManager : MonoBehaviour
         }
     }
 
-
     private void ReceiveFreezeEffect(string json)
     {
         if (string.IsNullOrEmpty(json))
@@ -708,7 +582,6 @@ public class NetworkCheeseManager : MonoBehaviour
             pendingFreezeEffects.Enqueue(effect);
         }
     }
-
 
     private void ProcessPendingSpeedEffects()
     {
@@ -787,6 +660,12 @@ public class NetworkCheeseManager : MonoBehaviour
         {
             movement.ActivarVelocidad(speedMultiplier, speedDuration);
 
+            // Sonido de activación de velocidad en la pantalla del jugador local
+            if (AudioManager.Instance != null)
+            {
+                AudioManager.Instance.ReproducirEfecto(AudioManager.Instance.PowerupVelocidad);
+            }
+
             GameHUD hud = FindFirstObjectByType<GameHUD>();
 
             if (hud != null)
@@ -839,19 +718,14 @@ public class NetworkCheeseManager : MonoBehaviour
 
             if (receiver != null && effect.active)
             {
-                receiver.AplicarCongelamiento(
-                    effect.frozenPlayerIds,
-                    freezeDuration
-                );
+                receiver.AplicarCongelamiento(effect.frozenPlayerIds, freezeDuration);
             }
 
             GameHUD hud = FindFirstObjectByType<GameHUD>();
 
             if (hud != null && effect.active)
             {
-                hud.ActualizarJugadoresCongelados(
-                    effect.frozenPlayerIds
-                );
+                hud.ActualizarJugadoresCongelados(effect.frozenPlayerIds);
             }
 
             int localPlayerId = NetworkSession.Instance.LocalPlayerId;
@@ -909,9 +783,22 @@ public class NetworkCheeseManager : MonoBehaviour
                 continue;
             }
 
+
             if (effect.active)
             {
+                // Congelar o reiniciar los 5 segundos.
                 movement.CongelarMovimiento();
+
+                if (AudioManager.Instance != null)
+                {
+                    AudioManager.Instance.ReproducirEfecto(AudioManager.Instance.PowerupCongelado);
+                }
+
+                if (freezeCoroutine != null)
+                {
+                    StopCoroutine(freezeCoroutine);
+                    freezeCoroutine = null;
+                }
 
                 if (freezeUI != null)
                 {
@@ -920,11 +807,8 @@ public class NetworkCheeseManager : MonoBehaviour
                     );
                 }
 
-                if (freezeCoroutine != null)
-                    StopCoroutine(freezeCoroutine);
-
                 freezeCoroutine = StartCoroutine(
-                    DescongelarDespuesDeCincoSegundos(movement)
+                    DescongelarDespuesDeCincoSegundos(movement, freezeUI)
                 );
             }
             else
@@ -936,13 +820,17 @@ public class NetworkCheeseManager : MonoBehaviour
                     StopCoroutine(freezeCoroutine);
                     freezeCoroutine = null;
                 }
+
+                if (freezeUI != null)
+                {
+                    freezeUI.FinalizarVisualCongelado();
+                }
             }
+
         }
     }
 
-    private System.Collections.IEnumerator EndSpeedEffectAfterDuration(
-        int playerId,
-        int version)
+    private System.Collections.IEnumerator EndSpeedEffectAfterDuration(int playerId, int version)
     {
         yield return new WaitForSeconds(speedDuration);
 
@@ -966,15 +854,24 @@ public class NetworkCheeseManager : MonoBehaviour
     }
 
     private IEnumerator DescongelarDespuesDeCincoSegundos(
-        PlayerMovement movement)
+        PlayerMovement movement,
+        FreezeEffectUI freezeUI)
     {
         yield return new WaitForSeconds(freezeDuration);
 
         if (movement != null)
+        {
             movement.DescongelarMovimiento();
+        }
+
+        if (freezeUI != null)
+        {
+            freezeUI.FinalizarVisualCongelado();
+        }
 
         freezeCoroutine = null;
 
         Debug.Log("El efecto de hielo ha terminado.");
     }
+
 }

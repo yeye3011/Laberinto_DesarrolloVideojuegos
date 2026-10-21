@@ -874,6 +874,69 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2046033161}
   m_CullTransparentMesh: 1
+--- !u!1 &2119227663
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2119227665}
+  - component: {fileID: 2119227664}
+  - component: {fileID: 2119227666}
+  m_Layer: 0
+  m_Name: AudioManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &2119227664
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2119227663}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d009a92f386e6a4dbcd20110b680118, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AudioManager
+  sonidoAmbiente: {fileID: 8300000, guid: 63f60de9223c7ec4e99ea63be604f5f4, type: 3}
+  musicaFondo: {fileID: 8300000, guid: cd99bf5f242345149bfc7f0531b4fd6f, type: 3}
+  sonidoClic: {fileID: 8300000, guid: ae760e3a25a82c5498d778f831eff1db, type: 3}
+  quesoNormal: {fileID: 8300000, guid: fd9c6ac2a11514243aaa3c2027491a81, type: 3}
+  powerupCongelado: {fileID: 8300000, guid: 385c34c1206299e4985efd62568f8510, type: 3}
+  powerupVelocidad: {fileID: 8300000, guid: 4cb946c3fe04dd04a9d515907c2e5755, type: 3}
+--- !u!4 &2119227665
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2119227663}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 873.46173, y: -0.00002, z: 3115.8364}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2119227666
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2119227663}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5338489ee935f694ea31de566374c297, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SonidoBotonesUI
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -883,3 +946,4 @@ SceneRoots:
   - {fileID: 922964153}
   - {fileID: 1069034965}
   - {fileID: 409433661}
+  - {fileID: 2119227665}

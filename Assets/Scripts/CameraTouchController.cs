@@ -8,10 +8,10 @@ public class CameraTouchController :
     IPointerUpHandler
 {
     [Header("Sensibilidad")]
-    [SerializeField] private float rotationSensitivity = 0.8f;
+    [SerializeField] private float rotationSensitivity = 0.15f;
 
     [Header("Límite por gesto")]
-    [SerializeField] private float maxRotationPerGesture = 90f;
+    [SerializeField] private float maxRotationPerGesture = 50f;
 
     private PlayerMovement localPlayer;
 

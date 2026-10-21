@@ -23,7 +23,6 @@ public class NetworkPlayerReceiver : MonoBehaviour
 
     private static readonly Color frozenBlue = new Color32(118, 155, 177, 255);
 
-
     private void Start()
     {
         lobbyClient = FindFirstObjectByType<LobbyClient>();
@@ -83,6 +82,11 @@ public class NetworkPlayerReceiver : MonoBehaviour
             {
                 PlayerNetworkState state = pair.Value;
 
+                if (NetworkSession.Instance == null)
+                {
+                    continue;
+                }
+
                 if (state.playerId == NetworkSession.Instance.LocalPlayerId)
                 {
                     continue;
@@ -126,7 +130,6 @@ public class NetworkPlayerReceiver : MonoBehaviour
         }
     }
 
-
     public void AplicarCongelamiento(int[] playerIds, float duration)
     {
         if (playerIds == null)
@@ -149,11 +152,9 @@ public class NetworkPlayerReceiver : MonoBehaviour
 
             if (!playerRenderers.ContainsKey(playerId))
             {
-                Renderer[] renderers =
-                    player.GetComponentsInChildren<Renderer>(true);
+                Renderer[] renderers = player.GetComponentsInChildren<Renderer>(true);
 
-                MaterialPropertyBlock[] blocks =
-                    new MaterialPropertyBlock[renderers.Length];
+                MaterialPropertyBlock[] blocks = new MaterialPropertyBlock[renderers.Length];
 
                 for (int i = 0; i < renderers.Length; i++)
                 {
@@ -199,14 +200,11 @@ public class NetworkPlayerReceiver : MonoBehaviour
                     StopCoroutine(runningCoroutine);
             }
 
-            freezeCoroutines[playerId] = StartCoroutine(
-                RestaurarJugadorCongelado(playerId, duration)
-            );
+            freezeCoroutines[playerId] = StartCoroutine(RestaurarJugadorCongelado(playerId, duration));
         }
     }
 
-    private System.Collections.IEnumerator RestaurarJugadorCongelado(
-        int playerId, float duration)
+    private System.Collections.IEnumerator RestaurarJugadorCongelado(int playerId, float duration)
     {
         yield return new WaitForSeconds(duration);
 

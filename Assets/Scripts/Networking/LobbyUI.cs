@@ -43,6 +43,7 @@ public class LobbyUI : MonoBehaviour
 
     private float tiempoPuntos = 0f;
     private int cantidadPuntos = 0;
+    private static bool volverASalaDeEspera = false;
 
     [Header("Paneles")]
     [SerializeField] private GameObject seleccionModo;
@@ -56,8 +57,54 @@ public class LobbyUI : MonoBehaviour
     [Header("Audio")]
     [SerializeField] private AudioSource audioCuentaRegresiva;
 
+
+    private void ResolverReferenciasRed()
+    {
+        // Si existe el NetworkManager persistente, sus componentes tienen prioridad.
+        if (NetworkPersistence.Instance != null)
+        {
+            LobbyServer servidorPersistente =
+                NetworkPersistence.Instance.GetComponent<LobbyServer>();
+
+            LobbyClient clientePersistente =
+                NetworkPersistence.Instance.GetComponent<LobbyClient>();
+
+            if (servidorPersistente != null)
+                lobbyServer = servidorPersistente;
+
+            if (clientePersistente != null)
+                lobbyClient = clientePersistente;
+        }
+        else
+        {
+            if (lobbyServer == null)
+                lobbyServer = FindFirstObjectByType<LobbyServer>();
+
+            if (lobbyClient == null)
+                lobbyClient = FindFirstObjectByType<LobbyClient>();
+        }
+
+        Debug.Log(
+            "REFERENCIAS RED | " +
+            "Server ID: " +
+            (lobbyServer != null
+                ? lobbyServer.GetInstanceID().ToString()
+                : "NULL") +
+            " | Client ID: " +
+            (lobbyClient != null
+                ? lobbyClient.GetInstanceID().ToString()
+                : "NULL") +
+            " | Persistence: " +
+            (NetworkPersistence.Instance != null
+                ? NetworkPersistence.Instance.GetInstanceID().ToString()
+                : "NULL")
+        );
+    }
+
     private void OnEnable()
     {
+        ResolverReferenciasRed();
+
         if (lobbyClient != null)
         {
             lobbyClient.OnPlayerListReceived += RecibirListaJugadores;
@@ -73,6 +120,7 @@ public class LobbyUI : MonoBehaviour
             lobbyServer.OnCountdownMessage += RecibirCuentaRegresiva;
         }
     }
+
 
     private void OnDisable()
     {
@@ -127,6 +175,72 @@ public class LobbyUI : MonoBehaviour
 
         Debug.Log(
             "Asignación de spawns guardada en NetworkSession."
+        );
+    }
+
+    private void Start()
+    {
+        if (!volverASalaDeEspera)
+            return;
+
+        volverASalaDeEspera = false;
+
+        if (seleccionModo != null)
+            seleccionModo.SetActive(false);
+
+        if (hostInicio != null)
+            hostInicio.SetActive(false);
+
+        if (jugadoresInicio != null)
+            jugadoresInicio.SetActive(false);
+
+        if (cuentaRegresiva != null)
+            cuentaRegresiva.SetActive(false);
+
+        // Priorizar siempre los componentes del NetworkManager persistente.
+        ResolverReferenciasRed();
+
+        bool soyHost = lobbyServer != null && lobbyServer.IsRunning;
+
+        if (soyHost)
+        {
+            if (hostEspera != null)
+                hostEspera.SetActive(true);
+
+            if (jugadoresEspera != null)
+                jugadoresEspera.SetActive(false);
+
+            if (lobbyServer != null)
+                lobbyServer.RefrescarListaJugadores();
+        }
+        else
+        {
+            if (hostEspera != null)
+                hostEspera.SetActive(false);
+
+            if (jugadoresEspera != null)
+                jugadoresEspera.SetActive(true);
+        }
+
+        if (lobbyClient != null &&
+         !string.IsNullOrEmpty(lobbyClient.LatestPlayerList))
+        {
+            RecibirListaJugadores(
+                lobbyClient.LatestPlayerList
+            );
+        }
+
+        Debug.Log(
+    "DIAGNÓSTICO LOBBY | Persistence: " +
+    (NetworkPersistence.Instance != null) +
+    " | Server: " +
+    (lobbyServer != null) +
+    " | Server activo: " +
+    (lobbyServer != null && lobbyServer.IsRunning) +
+    " | Client: " +
+    (lobbyClient != null) +
+    " | Client conectado: " +
+    (lobbyClient != null && lobbyClient.IsConnected)
         );
     }
 
@@ -189,8 +303,7 @@ public class LobbyUI : MonoBehaviour
     {
         if (mensajeSalaNoDisponible != null)
         {
-            mensajeSalaNoDisponible.text =
-                "No se encontró una sala disponible.";
+            mensajeSalaNoDisponible.text = "No se encontró una sala disponible.";
 
             mensajeSalaNoDisponible.gameObject.SetActive(true);
         }
@@ -207,8 +320,39 @@ public class LobbyUI : MonoBehaviour
         jugadoresEspera.SetActive(true);
     }
 
+
     private void MostrarCuentaRegresiva(string mensaje)
     {
+        if (mensaje == "ESPERANDO_JUGADORES")
+        {
+            if (cuentaRegresiva != null)
+                cuentaRegresiva.SetActive(false);
+
+            if (audioCuentaRegresiva != null)
+                audioCuentaRegresiva.Stop();
+
+            bool soyHost = lobbyServer != null && lobbyServer.IsRunning;
+
+            if (soyHost)
+            {
+                if (hostEspera != null)
+                    hostEspera.SetActive(true);
+
+                if (jugadoresEspera != null)
+                    jugadoresEspera.SetActive(false);
+            }
+            else
+            {
+                if (hostEspera != null)
+                    hostEspera.SetActive(false);
+
+                if (jugadoresEspera != null)
+                    jugadoresEspera.SetActive(true);
+            }
+
+            return;
+        }
+
         if (mensaje == "PREPARADOS")
         {
             if (audioCuentaRegresiva != null)
@@ -253,22 +397,16 @@ public class LobbyUI : MonoBehaviour
 
         if (clientNameInput != null)
         {
-            fondoNombreCliente =
-                clientNameInput.GetComponent<Image>();
+            fondoNombreCliente = clientNameInput.GetComponent<Image>();
 
-            clientNameInput.onValueChanged.AddListener(
-                NombreClienteEscrito
-            );
+            clientNameInput.onValueChanged.AddListener(NombreClienteEscrito);
         }
 
         if (clientIPInput != null)
         {
-            fondoIPCliente =
-                clientIPInput.GetComponent<Image>();
+            fondoIPCliente = clientIPInput.GetComponent<Image>();
 
-            clientIPInput.onValueChanged.AddListener(
-                IPClienteEscrita
-            );
+            clientIPInput.onValueChanged.AddListener(IPClienteEscrita);
         }
 
         if (mensajeSalaNoDisponible != null)
@@ -598,5 +736,9 @@ public class LobbyUI : MonoBehaviour
     {
         seleccionModo.SetActive(false);
         jugadoresInicio.SetActive(true);
+    }
+    public static void PrepararVolverASalaDeEspera()
+    {
+        volverASalaDeEspera = true;
     }
 }

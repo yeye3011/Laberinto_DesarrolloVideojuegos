@@ -22,6 +22,8 @@ public class LobbyClient : MonoBehaviour
 
     public bool IsConnected => isConnected;
     public string LatestCheeseStateJson => latestCheeseStateJson;
+    public string LatestPlayerList { get; private set; } = "";
+    public bool HostHasReturnedToLobby { get; private set; }
 
     public event Action<string> OnPlayerListReceived;
     public event Action OnConnectionFailed;
@@ -41,12 +43,9 @@ public class LobbyClient : MonoBehaviour
     public int LatestMatchTime { get; private set; } = -1;
     public event Action OnMatchFinished;
     public event Action OnMatchCancelled;
+    public event System.Action OnHostReturnedToLobby;
 
-
-    // ---------------------------------------------------------
     // CONECTAR
-    // ---------------------------------------------------------
-
     public void ConnectToServer(string hostIP, string playerName)
     {
         if (isConnected)
@@ -145,10 +144,7 @@ public class LobbyClient : MonoBehaviour
         }
     }
 
-    // ---------------------------------------------------------
     // ESCUCHAR SERVIDOR
-    // ---------------------------------------------------------
-
     private void Listen()
     {
         try
@@ -185,10 +181,7 @@ public class LobbyClient : MonoBehaviour
         isConnected = false;
     }
 
-    // ---------------------------------------------------------
     // PROCESAR MENSAJES
-    // ---------------------------------------------------------
-
     private void ProcessMessage(NetworkMessage message)
     {
         switch (message.type)
@@ -212,6 +205,8 @@ public class LobbyClient : MonoBehaviour
                 break;
 
             case "PlayerList":
+
+                LatestPlayerList = message.data;
 
                 OnPlayerListReceived?.Invoke(
                     message.data
@@ -253,8 +248,7 @@ public class LobbyClient : MonoBehaviour
                     "Estado de quesos recibido."
                 );
 
-                latestCheeseStateJson =
-                    message.data;
+                latestCheeseStateJson = message.data;
 
                 OnCheeseStateReceived?.Invoke(
                     message.data
@@ -360,15 +354,25 @@ public class LobbyClient : MonoBehaviour
 
                 break;
 
+
+            case "HostReturnedToLobby":
+
+                HostHasReturnedToLobby = true;
+
+                Debug.Log(
+                    "El host regresó al lobby. Ya puedes volver."
+                );
+
+                OnHostReturnedToLobby?.Invoke();
+
+                break;
+
+
         }
     }
 
-    // ---------------------------------------------------------
     // ENVIAR MENSAJE
-    // ---------------------------------------------------------
-
-    private void SendMessage(
-        NetworkMessage message)
+    private void SendMessage(NetworkMessage message)
     {
         try
         {
@@ -395,8 +399,7 @@ public class LobbyClient : MonoBehaviour
         if (state == null)
             return;
 
-        NetworkMessage message =
-            new NetworkMessage
+        NetworkMessage message = new NetworkMessage
             {
                 type = "PlayerState",
                 data = JsonUtility.ToJson(state)
@@ -405,11 +408,7 @@ public class LobbyClient : MonoBehaviour
         SendMessage(message);
     }
 
-
-    // ---------------------------------------------------------
     // RECOGER QUESO
-    // ---------------------------------------------------------
-
     public void SendCheeseCollectRequest(
         int cheeseId,
         int playerId)
@@ -445,10 +444,27 @@ public class LobbyClient : MonoBehaviour
         );
     }
 
-    // ---------------------------------------------------------
-    // DESCONECTAR
-    // ---------------------------------------------------------
+    public void SendReturnToLobby()
+    {
+        if (!isConnected)
+        {
+            Debug.LogWarning(
+                "No se puede regresar al lobby: cliente desconectado."
+            );
 
+            return;
+        }
+
+        SendMessage(new NetworkMessage
+        {
+            type = "ReturnToLobby",
+            data = ""
+        });
+
+        Debug.Log("Aviso de regreso al lobby enviado.");
+    }
+
+    // DESCONECTAR
     public void Disconnect()
     {
         isConnected = false;

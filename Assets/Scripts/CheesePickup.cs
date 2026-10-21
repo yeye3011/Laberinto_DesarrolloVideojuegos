@@ -56,36 +56,51 @@ public class CheesePickup : MonoBehaviour
             return;
         }
 
-        PlayerIdentity playerIdentity =
-            other.GetComponentInParent<PlayerIdentity>();
+        PlayerIdentity playerIdentity = other.GetComponentInParent<PlayerIdentity>();
 
         if (playerIdentity == null)
         {
-            Debug.Log(
-                "TRIGGER: el objeto que tocó el queso no pertenece a un Player."
-            );
+            Debug.Log("TRIGGER: el objeto que tocó el queso no pertenece a un Player.");
+            return;
+        }
 
+        if (NetworkSession.Instance == null)
+        {
+            Debug.LogError("No existe NetworkSession.");
+            return;
+        }
+
+        int localPlayerId = NetworkSession.Instance.LocalPlayerId;
+
+        if (playerIdentity.PlayerId != localPlayerId)
+        {
             return;
         }
 
         alreadyRequested = true;
 
         int cheeseId = cheeseIdentity.CheeseId;
-
         int playerId = playerIdentity.PlayerId;
 
-        Debug.Log(
-            "PICKUP: jugador "
-            + playerId
-            + " tocó queso ID "
-            + cheeseId
-        );
+        Debug.Log("PICKUP: jugador " + playerId + " tocó queso ID " + cheeseId);
+
+        if (AudioManager.Instance != null)
+        {
+            if (cheeseIdentity.CheeseType == "Speed")
+            {
+                AudioManager.Instance.ReproducirEfecto(AudioManager.Instance.PowerupVelocidad);
+            }
+            else if (cheeseIdentity.CheeseType == "Normal") 
+            {
+                AudioManager.Instance.ReproducirEfecto(AudioManager.Instance.QuesoNormal);
+            }
+        }
 
         NetworkCheeseManager manager = FindFirstObjectByType<NetworkCheeseManager>();
 
-        manager.RequestCheeseCollection(
-            cheeseId,
-            playerId
-        );
+        if (manager != null)
+        {
+            manager.RequestCheeseCollection(cheeseId, playerId);
+        }
     }
 }

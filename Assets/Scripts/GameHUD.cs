@@ -180,7 +180,6 @@ public class GameHUD : MonoBehaviour
         }
     }
 
-
     private void RecibirTiempo(int segundos)
     {
         accionesPendientes.Enqueue(() => ActualizarTiempo(segundos));
@@ -199,6 +198,21 @@ public class GameHUD : MonoBehaviour
         accionesPendientes.Enqueue(() =>
         {
             partidaCancelada = false;
+
+            // Bloquear el movimiento de todos los jugadores.
+            PlayerMovement[] movimientos =
+                FindObjectsByType<PlayerMovement>(
+                    FindObjectsSortMode.None
+                );
+
+            foreach (PlayerMovement movimiento in movimientos)
+            {
+                if (movimiento != null)
+                {
+                    movimiento.CongelarMovimiento();
+                }
+            }
+
             MostrarMensajeFinal("¡SE ACABÓ EL JUEGO!");
         });
     }
@@ -210,11 +224,10 @@ public class GameHUD : MonoBehaviour
             partidaCancelada = true;
 
             MostrarMensajeFinal(
-                "Lo sentimos,\nla conexión se ha perdido."
+                "Lo sentimos, la conexión se ha perdido."
             );
         });
     }
-
 
     private void ActualizarTiempo(int segundos)
     {
@@ -391,7 +404,7 @@ public class GameHUD : MonoBehaviour
         if (textoFinPartida != null)
             textoFinPartida.text = mensaje;
 
-        yield return new WaitForSeconds(4f);
+        yield return new WaitForSeconds(2.2f);
 
         SceneManager.LoadScene("ResultadosScene");
     }

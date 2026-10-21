@@ -6,7 +6,7 @@ public class SpeedCheeseAnimation : MonoBehaviour
     [SerializeField] private Transform visualRoot;
 
     [Header("Velocidad de giro")]
-    [SerializeField] private float rotationSpeed = 100f;
+    [SerializeField] private float rotationSpeed = 120f;
 
     private void Awake()
     {

@@ -15,7 +15,7 @@ public class CheeseSpawner : MonoBehaviour
     [SerializeField] private GameObject speedCheesePrefab;
 
     [Header("Distancia mínima entre quesos")]
-    [SerializeField] private float minimumDistance = 80f;
+    [SerializeField] private float minimumDistance = 60f;
 
     [Header("Altura del queso")]
     [SerializeField] private float spawnY = 12f;
@@ -32,7 +32,7 @@ public class CheeseSpawner : MonoBehaviour
     [SerializeField] private float maximumRotationY = 180f;
 
     [Header("Intentos")]
-    [SerializeField] private int maxAttemptsPerCheese = 500;
+    [SerializeField] private int maxAttemptsPerCheese = 520;
 
     private readonly List<GameObject> spawnedCheeses = new List<GameObject>();
 
@@ -41,11 +41,9 @@ public class CheeseSpawner : MonoBehaviour
     private readonly List<NetworkCheeseData> spawnedNetworkCheeses = new List<NetworkCheeseData>();
 
     private MeshFilter[] areaMeshFilters;
+    private int nextCheeseId = 70;
 
-    // =========================================================
     // PREPARAR ÁREA
-    // =========================================================
-
     private void PrepareSpawnArea()
     {
 
@@ -53,11 +51,7 @@ public class CheeseSpawner : MonoBehaviour
 
     }
 
-
-    // =========================================================
     // HOST: GENERAR QUESOS
-    // =========================================================
-
     public List<NetworkCheeseData> SpawnHostCheeses()
     {
         PrepareSpawnArea();
@@ -66,35 +60,33 @@ public class CheeseSpawner : MonoBehaviour
 
         spawnedNetworkCheeses.Clear();
 
-        // =====================================================
-        // CREAR LOS 50 QUESOS CON IDs FIJOS
-        // =====================================================
+        nextCheeseId = 70;
 
-        for (int cheeseId = 0; cheeseId < 50; cheeseId++)
+        // Crear 70 quesos con IDs únicos
+        for (int cheeseId = 0; cheeseId < 70; cheeseId++)
         {
             GameObject prefab;
             string cheeseType;
 
-            // 0 - 39 = NORMAL
-            if (cheeseId >= 0 && cheeseId <= 39)
+            // 0 - 53 = 54 quesos normales
+            if (cheeseId <= 53)
             {
                 prefab = normalCheesePrefab;
                 cheeseType = "Normal";
             }
-
-            // 40 - 44 = ICE
-            else if (cheeseId >= 40 && cheeseId <= 44)
+            // 54 - 61 = 8 quesos de hielo
+            else if (cheeseId <= 61)
             {
                 prefab = iceCheesePrefab;
                 cheeseType = "Ice";
             }
-
-            // 45 - 49 = SPEED
+            // 62 - 69 = 8 quesos de velocidad
             else
             {
                 prefab = speedCheesePrefab;
                 cheeseType = "Speed";
             }
+
 
             Vector3 spawnPosition;
             Quaternion spawnRotation;
@@ -135,15 +127,10 @@ public class CheeseSpawner : MonoBehaviour
             + spawnedNetworkCheeses.Count
         );
 
-        return new List<NetworkCheeseData>(
-            spawnedNetworkCheeses
-        );
+        return new List<NetworkCheeseData>(spawnedNetworkCheeses);
     }
 
-    // =========================================================
     // COMPATIBILIDAD CON EL MÉTODO ANTERIOR
-    // =========================================================
-
     public void SpawnInitialCheeses()
     {
         SpawnHostCheeses();
@@ -161,13 +148,8 @@ public class CheeseSpawner : MonoBehaviour
         );
     }
 
-
-    // =========================================================
     // CLIENTES: CREAR QUESOS RECIBIDOS
-    // =========================================================
-
-    public void ApplyNetworkCheeses(
-        List<NetworkCheeseData> cheeseData)
+    public void ApplyNetworkCheeses(List<NetworkCheeseData> cheeseData)
     {
         PrepareSpawnArea();
 
@@ -219,13 +201,8 @@ public class CheeseSpawner : MonoBehaviour
         );
     }
 
-
-    // =========================================================
     // OBTENER PREFAB SEGÚN TIPO
-    // =========================================================
-
-    private GameObject GetPrefabForType(
-        string cheeseType)
+    private GameObject GetPrefabForType(string cheeseType)
     {
         switch (cheeseType)
         {
@@ -243,10 +220,7 @@ public class CheeseSpawner : MonoBehaviour
         }
     }
 
-    // =========================================================
     // BUSCAR POSICIÓN
-    // =========================================================
-
     private bool TryFindValidPosition(
         GameObject prefab,
         out Vector3 validPosition,
@@ -262,22 +236,19 @@ public class CheeseSpawner : MonoBehaviour
         {
             Vector3 candidate;
 
-            if (!TryGetRandomPointOnSpawnArea(
-                out candidate))
+            if (!TryGetRandomPointOnSpawnArea(out candidate))
             {
                 continue;
             }
 
             candidate.y = spawnY;
 
-            if (IsTooCloseToAnotherCheese(
-                candidate))
+            if (IsTooCloseToAnotherCheese(candidate))
             {
                 continue;
             }
 
-            if (IsTooCloseToPlayer(
-                candidate))
+            if (IsTooCloseToPlayer(candidate))
             {
                 continue;
             }
@@ -312,10 +283,7 @@ public class CheeseSpawner : MonoBehaviour
         return false;
     }
 
-    // =========================================================
     // PUNTO ALEATORIO EN EL ÁREA
-    // =========================================================
-
     private bool TryGetRandomPointOnSpawnArea(out Vector3 worldPoint)
     {
         worldPoint = Vector3.zero;
@@ -358,8 +326,7 @@ public class CheeseSpawner : MonoBehaviour
 
         int[] triangles = mesh.triangles;
 
-        if (triangles == null ||
-            triangles.Length < 3)
+        if (triangles == null || triangles.Length < 3)
         {
             return false;
         }
@@ -390,14 +357,11 @@ public class CheeseSpawner : MonoBehaviour
                     triangleIndex * 3 + 2
                 ];
 
-            Vector3 localA =
-                vertices[indexA];
+            Vector3 localA = vertices[indexA];
 
-            Vector3 localB =
-                vertices[indexB];
+            Vector3 localB = vertices[indexB];
 
-            Vector3 localC =
-                vertices[indexC];
+            Vector3 localC = vertices[indexC];
 
             Vector3 localNormal =
                 Vector3.Cross(
@@ -408,11 +372,9 @@ public class CheeseSpawner : MonoBehaviour
             if (localNormal.y < 0.5f)
                 continue;
 
-            float r1 =
-                Random.Range(0f, 1f);
+            float r1 = Random.Range(0f, 1f);
 
-            float r2 =
-                Random.Range(0f, 1f);
+            float r2 = Random.Range(0f, 1f);
 
             if (r1 + r2 > 1f)
             {
@@ -425,9 +387,7 @@ public class CheeseSpawner : MonoBehaviour
                 + (localB - localA) * r1
                 + (localC - localA) * r2;
 
-            worldPoint =
-                selectedMeshFilter.transform
-                .TransformPoint(localPoint);
+            worldPoint = selectedMeshFilter.transform.TransformPoint(localPoint);
 
             return true;
         }
@@ -435,12 +395,8 @@ public class CheeseSpawner : MonoBehaviour
         return false;
     }
 
-    // =========================================================
     // COLLIDER
-    // =========================================================
-
-    private BoxCollider GetCheeseCollider(
-        GameObject prefab)
+    private BoxCollider GetCheeseCollider(GameObject prefab)
     {
         if (prefab == null)
             return null;
@@ -448,17 +404,13 @@ public class CheeseSpawner : MonoBehaviour
         return prefab.GetComponentInChildren<BoxCollider>();
     }
 
-    // =========================================================
     // PAREDES
-    // =========================================================
-
     private bool IsOverlappingWall(
         GameObject prefab,
         Vector3 position,
         Quaternion rotation)
     {
-        BoxCollider collider =
-            GetCheeseCollider(prefab);
+        BoxCollider collider = GetCheeseCollider(prefab);
 
         Vector3 worldScale =
             Vector3.Scale(
@@ -466,11 +418,9 @@ public class CheeseSpawner : MonoBehaviour
                 collider.size
             );
 
-        Vector3 halfExtents =
-            worldScale * 0.5f;
+        Vector3 halfExtents = worldScale * 0.5f;
 
-        halfExtents +=
-            Vector3.one * wallClearance;
+        halfExtents += Vector3.one * wallClearance;
 
         Vector3 colliderCenter =
             position
@@ -491,12 +441,8 @@ public class CheeseSpawner : MonoBehaviour
         return walls.Length > 0;
     }
 
-    // =========================================================
     // DISTANCIA ENTRE QUESOS
-    // =========================================================
-
-    private bool IsTooCloseToAnotherCheese(
-        Vector3 position)
+    private bool IsTooCloseToAnotherCheese(Vector3 position)
     {
         foreach (
             Vector3 cheesePosition
@@ -521,10 +467,7 @@ public class CheeseSpawner : MonoBehaviour
         return false;
     }
 
-    // =========================================================
     // DISTANCIA A JUGADORES
-    // =========================================================
-
     private bool IsTooCloseToPlayer(Vector3 position)
     {
         Collider[] playerColliders =
@@ -538,10 +481,7 @@ public class CheeseSpawner : MonoBehaviour
         return playerColliders.Length > 0;
     }
 
-    // =========================================================
     // CREAR QUESO
-    // =========================================================
-
     private void SpawnCheese(
         GameObject prefab,
         Vector3 position,
@@ -556,10 +496,7 @@ public class CheeseSpawner : MonoBehaviour
                 rotation
             );
 
-        // =====================================================
         // IDENTIDAD DE RED
-        // =====================================================
-
         NetworkCheeseIdentity identity = cheese.GetComponent<NetworkCheeseIdentity>();
 
         if (identity == null)
@@ -567,10 +504,7 @@ public class CheeseSpawner : MonoBehaviour
             identity = cheese.AddComponent<NetworkCheeseIdentity>();
         }
 
-        identity.SetIdentity(
-            cheeseId,
-            cheeseType
-        );
+        identity.SetIdentity(cheeseId, cheeseType);
 
         CheesePickup pickup = cheese.GetComponent<CheesePickup>();
 
@@ -579,10 +513,7 @@ public class CheeseSpawner : MonoBehaviour
             cheese.AddComponent<CheesePickup>();
         }
 
-        // =====================================================
         // GUARDAR QUESO
-        // =====================================================
-
         spawnedCheeses.Add(cheese);
 
         cheesePositions.Add(position);
@@ -602,10 +533,7 @@ public class CheeseSpawner : MonoBehaviour
         spawnedNetworkCheeses.Add(data);
     }
 
-    // =========================================================
     // ELIMINAR QUESO POR ID
-    // =========================================================
-
     public bool RemoveCheeseById(int cheeseId)
     {
         for (int i = 0; i < spawnedCheeses.Count; i++)
@@ -616,8 +544,7 @@ public class CheeseSpawner : MonoBehaviour
             if (cheese == null)
                 continue;
 
-            NetworkCheeseIdentity identity =
-                cheese.GetComponent<NetworkCheeseIdentity>();
+            NetworkCheeseIdentity identity = cheese.GetComponent<NetworkCheeseIdentity>();
 
             if (identity == null)
                 continue;
@@ -661,56 +588,58 @@ public class CheeseSpawner : MonoBehaviour
         return false;
     }
 
-    // =========================================================
     // CREAR REEMPLAZO
-    // =========================================================
-
-    public NetworkCheeseData SpawnReplacementCheese(
-        int cheeseId,
-        string cheeseType)
+    public NetworkCheeseData SpawnReplacementCheese(int cheeseId, string cheeseType)
     {
-        GameObject prefab =
-            GetPrefabForType(
-                cheeseType
+        GameObject prefab = GetPrefabForType(cheeseType);
+
+        if (prefab == null)
+        {
+            Debug.LogError(
+                "CheeseSpawner: no existe prefab para tipo " + cheeseType
             );
+            return null;
+        }
 
         Vector3 spawnPosition;
         Quaternion spawnRotation;
 
-        bool found =
-            TryFindValidPosition(
-                prefab,
-                out spawnPosition,
-                out spawnRotation
-            );
+        bool found = TryFindValidPosition(
+            prefab,
+            out spawnPosition,
+            out spawnRotation
+        );
 
         if (!found)
         {
             Debug.LogError(
-                "CheeseSpawner: no se encontró posición para reemplazo ID "
-                + cheeseId
+                "CheeseSpawner: no se encontró posición para reemplazo."
             );
-
             return null;
         }
+
+        int newCheeseId = nextCheeseId++;
 
         SpawnCheese(
             prefab,
             spawnPosition,
             spawnRotation,
-            cheeseId,
+            newCheeseId,
             cheeseType
         );
 
-        return spawnedNetworkCheeses[
-            spawnedNetworkCheeses.Count - 1
-        ];
+        Debug.Log(
+            "CheeseSpawner: nuevo queso. ID anterior = "
+            + cheeseId
+            + " | ID nuevo = "
+            + newCheeseId
+        );
+
+        return spawnedNetworkCheeses[spawnedNetworkCheeses.Count - 1];
     }
 
-    // =========================================================
-    // CLIENTE: CREAR UN SOLO QUESO DE RED
-    // =========================================================
 
+    // CLIENTE: CREAR UN SOLO QUESO DE RED
     public void ApplySingleNetworkCheese(
         NetworkCheeseData data)
     {
@@ -724,9 +653,7 @@ public class CheeseSpawner : MonoBehaviour
 
         // Por seguridad, eliminar primero
         // cualquier objeto que todavía tenga este ID.
-        RemoveCheeseById(
-            data.cheeseId
-        );
+        RemoveCheeseById(data.cheeseId);
 
         Vector3 position =
             new Vector3(
@@ -758,11 +685,7 @@ public class CheeseSpawner : MonoBehaviour
         );
     }
 
-
-    // =========================================================
     // LIMPIAR
-    // =========================================================
-
     public void ClearCheeses()
     {
         foreach (

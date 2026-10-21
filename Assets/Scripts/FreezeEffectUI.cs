@@ -16,6 +16,7 @@ public class FreezeEffectUI : MonoBehaviour
     [SerializeField] private TMP_Text textoCongelar;
 
     private Coroutine freezeUICoroutine;
+    private Coroutine mensajeCoroutine;
 
     private void Start()
     {
@@ -31,16 +32,15 @@ public class FreezeEffectUI : MonoBehaviour
 
     public void MostrarMensaje(string mensaje, float duracion)
     {
-        if (freezeUICoroutine != null)
-            StopCoroutine(freezeUICoroutine);
+        if (mensajeCoroutine != null)
+            StopCoroutine(mensajeCoroutine);
 
-        freezeUICoroutine = StartCoroutine(
+        mensajeCoroutine = StartCoroutine(
             MostrarMensajeCoroutine(mensaje, duracion)
         );
     }
 
-    private IEnumerator MostrarMensajeCoroutine(
-        string mensaje, float duracion)
+    private IEnumerator MostrarMensajeCoroutine(string mensaje, float duracion)
     {
         if (mensajeCongelar != null)
             mensajeCongelar.SetActive(true);
@@ -53,7 +53,7 @@ public class FreezeEffectUI : MonoBehaviour
         if (mensajeCongelar != null)
             mensajeCongelar.SetActive(false);
 
-        freezeUICoroutine = null;
+        mensajeCoroutine = null;
     }
 
     public void ActivarVisualCongelado()
@@ -84,7 +84,10 @@ public class FreezeEffectUI : MonoBehaviour
     public void IniciarSecuenciaCongelado(string nombreActivador)
     {
         if (freezeUICoroutine != null)
+        {
             StopCoroutine(freezeUICoroutine);
+            freezeUICoroutine = null;
+        }
 
         freezeUICoroutine = StartCoroutine(
             SecuenciaCongelado(nombreActivador)
@@ -118,11 +121,26 @@ public class FreezeEffectUI : MonoBehaviour
 
         yield return new WaitForSeconds(1f);
 
+        freezeUICoroutine = null;
+
         if (mensajeCongelar != null)
             mensajeCongelar.SetActive(false);
 
         DesactivarVisualCongelado();
-        freezeUICoroutine = null;
+    }
+
+    public void FinalizarVisualCongelado()
+    {
+        if (freezeUICoroutine != null)
+        {
+            StopCoroutine(freezeUICoroutine);
+            freezeUICoroutine = null;
+        }
+
+        if (mensajeCongelar != null)
+            mensajeCongelar.SetActive(false);
+
+        DesactivarVisualCongelado();
     }
 
 }

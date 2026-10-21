@@ -4,7 +4,7 @@ using UnityEngine;
 public class PlayerNetworkSync : MonoBehaviour
 {
     [Header("Sincronización")]
-    [SerializeField] private float sendInterval = 0.05f;
+    [SerializeField] private float sendInterval = 0.04f;
 
     private LobbyClient lobbyClient;
     private LobbyServer lobbyServer;
@@ -50,8 +50,7 @@ public class PlayerNetworkSync : MonoBehaviour
         if (!playerMovement.IsLocalPlayer)
             return;
 
-        PlayerNetworkState state =
-            new PlayerNetworkState
+        PlayerNetworkState state = new PlayerNetworkState
             {
                 playerId =
                     NetworkSession.Instance.LocalPlayerId,
@@ -65,10 +64,7 @@ public class PlayerNetworkSync : MonoBehaviour
                 state = playerMovement.CurrentState
             };
 
-        // ============================
         // CLIENTE
-        // ============================
-
         if (lobbyClient != null &&
             lobbyClient.IsConnected)
         {
@@ -78,14 +74,10 @@ public class PlayerNetworkSync : MonoBehaviour
             return;
         }
 
-        // ============================
         // HOST
-        // ============================
-
         if (lobbyServer != null)
         {
-            NetworkMessage message =
-                new NetworkMessage
+            NetworkMessage message = new NetworkMessage
                 {
                     type = "PlayerState",
                     playerId = state.playerId,

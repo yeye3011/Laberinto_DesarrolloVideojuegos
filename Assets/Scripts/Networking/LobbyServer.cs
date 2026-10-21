@@ -26,6 +26,7 @@ public class LobbyServer : MonoBehaviour
     private int remainingMatchTime;
     private bool matchRunning;
     private Coroutine matchTimerCoroutine;
+    private bool countdownRunning;
 
     private readonly object clientsLock = new object();
 
@@ -64,11 +65,7 @@ public class LobbyServer : MonoBehaviour
         }
     }
 
-
-    // ---------------------------------------------------------
     // MOSTRAR IP
-    // ---------------------------------------------------------
-
     public string LocalIPAddress
     {
         get
@@ -104,10 +101,7 @@ public class LobbyServer : MonoBehaviour
         }
     }
 
-    // ---------------------------------------------------------
     // INICIAR SERVIDOR
-    // ---------------------------------------------------------
-
     public void StartServer(string playerName)
     {
         if (isRunning)
@@ -145,10 +139,7 @@ public class LobbyServer : MonoBehaviour
         Debug.Log("Puerto: " + port);
     }
 
-    // ---------------------------------------------------------
     // ESPERAR CONEXIONES
-    // ---------------------------------------------------------
-
     private void ServerLoop()
     {
         try
@@ -175,13 +166,11 @@ public class LobbyServer : MonoBehaviour
                             continue;
                         }
 
-                        ClientConnection connection =
-                            new ClientConnection(tcpClient, this);
+                        ClientConnection connection = new ClientConnection(tcpClient, this);
 
                         clients.Add(connection);
 
-                        Thread clientThread =
-                            new Thread(connection.Listen);
+                        Thread clientThread = new Thread(connection.Listen);
 
                         clientThread.IsBackground = true;
                         clientThread.Start();
@@ -204,10 +193,7 @@ public class LobbyServer : MonoBehaviour
         }
     }
 
-    // ---------------------------------------------------------
     // NUEVO JUGADOR
-    // ---------------------------------------------------------
-
     public void RegisterClient(ClientConnection connection, string playerName)
     {
         lock (clientsLock)
@@ -251,16 +237,16 @@ public class LobbyServer : MonoBehaviour
         );
     }
 
-    // ---------------------------------------------------------
     // LISTA DE JUGADORES
-    // ---------------------------------------------------------
-
     private void BroadcastPlayerList()
     {
         string playerData = "";
 
         foreach (LobbyPlayer player in players)
         {
+            if (!player.readyForLobby)
+                continue;
+
             playerData +=
                 player.playerId +
                 "|" +
@@ -287,10 +273,18 @@ public class LobbyServer : MonoBehaviour
         Debug.Log("Lista actualizada: " + playerData);
     }
 
-    // ---------------------------------------------------------
-    // ENVIAR MENSAJE
-    // ---------------------------------------------------------
+    public void RefrescarListaJugadores()
+    {
+        if (!isRunning)
+            return;
 
+        lock (clientsLock)
+        {
+            BroadcastPlayerList();
+        }
+    }
+
+    // ENVIAR MENSAJE
     private void SendMessage(ClientConnection client, NetworkMessage message)
     {
         try
@@ -339,7 +333,6 @@ public class LobbyServer : MonoBehaviour
             cheeseId
         );
     }
-
 
     public void BroadcastCheeseState(string cheeseJson)
     {
@@ -452,7 +445,6 @@ public class LobbyServer : MonoBehaviour
         Debug.Log("SERVIDOR: efecto de congelamiento enviado a los clientes.");
     }
 
-
     public void AddPlayerScore(int playerId, int amount)
     {
         lock (clientsLock)
@@ -523,11 +515,7 @@ public class LobbyServer : MonoBehaviour
         BroadcastScoreState();
     }
 
-
-    // ---------------------------------------------------------
     // TEMPORIZADOR
-    // ---------------------------------------------------------
-
     public void StartMatchTimer()
     {
         if (!isRunning)
@@ -536,8 +524,11 @@ public class LobbyServer : MonoBehaviour
         if (matchRunning)
             return;
 
-        if (players.Count < 2)
-            return;
+        lock (clientsLock)
+        {
+            if (players.Count(p => p.readyForLobby) < 2)
+                return;
+        }
 
         if (matchTimerCoroutine != null)
             StopCoroutine(matchTimerCoroutine);
@@ -600,7 +591,6 @@ public class LobbyServer : MonoBehaviour
         OnMatchTimeReceived?.Invoke(seconds);
     }
 
-
     private void BroadcastMatchFinished()
     {
         NetworkMessage message = new NetworkMessage
@@ -620,11 +610,7 @@ public class LobbyServer : MonoBehaviour
         OnMatchFinished?.Invoke();
     }
 
-
-    // ---------------------------------------------------------
     // DESCONEXIÓN
-    // ---------------------------------------------------------
-
     public void RemoveClient(ClientConnection connection)
     {
         lock (clientsLock)
@@ -692,13 +678,11 @@ public class LobbyServer : MonoBehaviour
         OnMatchCancelled?.Invoke();
     }
 
-
-    // ---------------------------------------------------------
     // DETENER SERVIDOR
-    // ---------------------------------------------------------
-
     public void StopServer()
     {
+        Debug.LogError("STOP SERVER llamado. isRunning=" + isRunning + "\n" + System.Environment.StackTrace);
+
         isRunning = false;
 
         try
@@ -732,26 +716,16 @@ public class LobbyServer : MonoBehaviour
         Debug.Log("Servidor detenido.");
     }
 
-    private void OnDestroy()
-    {
-        StopServer();
-    }
-
-    // =========================================================
     // CLASE DEL JUGADOR
-    // =========================================================
-
     [Serializable]
     private class LobbyPlayer
     {
         public int playerId;
         public string playerName;
+        public bool readyForLobby = true;
     }
 
-    // =========================================================
     // CONEXIÓN DE CLIENTE
-    // =========================================================
-
     public class ClientConnection
     {
         private TcpClient tcpClient;
@@ -765,26 +739,16 @@ public class LobbyServer : MonoBehaviour
 
         public string PlayerName { get; set; }
 
-        public ClientConnection(
-            TcpClient client,
-            LobbyServer lobbyServer)
+        public ClientConnection(TcpClient client, LobbyServer lobbyServer)
         {
             tcpClient = client;
             server = lobbyServer;
 
             NetworkStream stream =  tcpClient.GetStream();
 
-            reader =
-                new StreamReader(
-                    stream,
-                    Encoding.UTF8
-                );
+            reader = new StreamReader(stream, Encoding.UTF8);
 
-            Writer =
-                new StreamWriter(
-                    stream,
-                    Encoding.UTF8
-                )
+            Writer = new StreamWriter(stream, Encoding.UTF8)
                 {
                     AutoFlush = true
                 };
@@ -805,10 +769,7 @@ public class LobbyServer : MonoBehaviour
 
                     if (message.type == "Hello")
                     {
-                        server.RegisterClient(
-                            this,
-                            message.playerName
-                        );
+                        server.RegisterClient(this, message.playerName);
                     }
                     else if (message.type == "PlayerState")
                     {
@@ -818,10 +779,7 @@ public class LobbyServer : MonoBehaviour
                     }
                     else if (message.type == "CheeseCollectRequest")
                     {
-                        CheeseCollectRequestData request =
-                            JsonUtility.FromJson<CheeseCollectRequestData>(
-                                message.data
-                            );
+                        CheeseCollectRequestData request = JsonUtility.FromJson<CheeseCollectRequestData>(message.data);
 
                         if (request != null)
                         {
@@ -833,6 +791,10 @@ public class LobbyServer : MonoBehaviour
                                 request.cheeseId
                             );
                         }
+                    }
+                    else if (message.type == "ReturnToLobby")
+                    {
+                        server.MarcarJugadorDeRegreso(PlayerId);
                     }
                 }
             }
@@ -859,20 +821,41 @@ public class LobbyServer : MonoBehaviour
         }
     }
 
+
     public void StartCountdown()
     {
-        int cantidadJugadores;
+        if (!isRunning || matchRunning || countdownRunning)
+            return;
 
         lock (clientsLock)
         {
-            cantidadJugadores = players.Count;
+            List<LobbyPlayer> jugadoresListos =
+                players.Where(p => p.readyForLobby).ToList();
+
+            if (jugadoresListos.Count < 2 || jugadoresListos.Count > 4)
+            {
+                Debug.LogWarning(
+                    "Se necesitan entre 2 y 4 jugadores listos para iniciar."
+                );
+                return;
+            }
+
+            if (!CrearAsignacionDeSpawns())
+                return;
+
+            // Reiniciar los puntajes para la nueva partida.
+            foreach (int playerId in playerScores.Keys.ToList())
+            {
+                playerScores[playerId] = 0;
+            }
+
+            countdownRunning = true;
         }
 
-
-        CrearAsignacionDeSpawns();
-
+        BroadcastScoreState();
         StartCoroutine(CuentaRegresivaCoroutine());
     }
+
 
     private IEnumerator CuentaRegresivaCoroutine()
     {
@@ -880,25 +863,76 @@ public class LobbyServer : MonoBehaviour
 
         yield return new WaitForSeconds(1f);
 
+        if (!PuedeContinuarCuentaRegresiva())
+        {
+            CancelarCuentaRegresiva();
+            yield break;
+        }
+
         EnviarCuentaRegresiva("3");
 
         yield return new WaitForSeconds(1f);
+
+        if (!PuedeContinuarCuentaRegresiva())
+        {
+            CancelarCuentaRegresiva();
+            yield break;
+        }
 
         EnviarCuentaRegresiva("2");
 
         yield return new WaitForSeconds(1f);
 
+        if (!PuedeContinuarCuentaRegresiva())
+        {
+            CancelarCuentaRegresiva();
+            yield break;
+        }
+
         EnviarCuentaRegresiva("1");
 
         yield return new WaitForSeconds(1f);
+
+        if (!PuedeContinuarCuentaRegresiva())
+        {
+            CancelarCuentaRegresiva();
+            yield break;
+        }
 
         EnviarCuentaRegresiva("¡A JUGAR!");
 
         yield return new WaitForSeconds(1.2f);
 
+        if (!PuedeContinuarCuentaRegresiva())
+        {
+            CancelarCuentaRegresiva();
+            yield break;
+        }
+
+        countdownRunning = false;
+
         StartMatchTimer();
 
         BroadcastScoreState();
+    }
+
+    private bool PuedeContinuarCuentaRegresiva()
+    {
+        lock (clientsLock)
+        {
+            int jugadoresListos =
+                players.Count(p => p.readyForLobby);
+
+            return isRunning &&
+                   jugadoresListos >= 2 &&
+                   jugadoresListos <= 4;
+        }
+    }
+
+    private void CancelarCuentaRegresiva()
+    {
+        countdownRunning = false;
+        EnviarCuentaRegresiva("ESPERANDO_JUGADORES");
     }
 
     private void EnviarCuentaRegresiva(string mensaje)
@@ -923,16 +957,13 @@ public class LobbyServer : MonoBehaviour
 
     }
 
-    private void CrearAsignacionDeSpawns()
+    private bool CrearAsignacionDeSpawns()
     {
-        if (players.Count < 2 || players.Count > 4)
-        {
-            Debug.LogWarning(
-                "No se puede asignar spawn. " +
-                "La partida necesita entre 2 y 4 jugadores."
-            );
+        List<LobbyPlayer> jugadoresListos = players.Where(p => p.readyForLobby).ToList();
 
-            return;
+        if (jugadoresListos.Count < 2 || jugadoresListos.Count > 4)
+        {
+            return false;
         }
 
         List<int> spawnIndexes = Enumerable.Range(0, 4).ToList();
@@ -956,14 +987,14 @@ public class LobbyServer : MonoBehaviour
                 "No se encontró NetworkSession."
             );
 
-            return;
+            return false;
         }
 
         session.ClearPlayers();
 
-        for (int i = 0; i < players.Count; i++)
+        for (int i = 0; i < jugadoresListos.Count; i++)
         {
-            LobbyPlayer player = players[i];
+            LobbyPlayer player = jugadoresListos[i];
 
             session.AddPlayer(
                 player.playerId,
@@ -992,11 +1023,92 @@ public class LobbyServer : MonoBehaviour
         {
             foreach (ClientConnection client in clients)
             {
-                SendMessage(
-                    client,
-                    message
-                );
+                SendMessage(client, message);
+            }
+        }
+        return true;
+    }
+
+
+    public void PrepararRegresoAlLobby()
+    {
+        // Preparar el servidor para una nueva ronda.
+        matchRunning = false;
+        countdownRunning = false;
+
+        if (matchTimerCoroutine != null)
+        {
+            StopCoroutine(matchTimerCoroutine);
+            matchTimerCoroutine = null;
+        }
+
+        lock (clientsLock)
+        {
+            foreach (LobbyPlayer player in players)
+            {
+                player.readyForLobby = player.playerId == hostId;
+            }
+
+            // Primero actualizamos la lista del lobby.
+            BroadcastPlayerList();
+
+            // Avisamos a todos los clientes que el host ya regresó.
+            NetworkMessage aviso = new NetworkMessage
+            {
+                type = "HostReturnedToLobby",
+                data = ""
+            };
+
+            foreach (ClientConnection client in clients)
+            {
+                SendMessage(client, aviso);
             }
         }
     }
+
+
+    public void MarcarJugadorDeRegreso(int playerId)
+    {
+        lock (clientsLock)
+        {
+            LobbyPlayer player = players.Find(
+                p => p.playerId == playerId
+            );
+
+            if (player == null)
+                return;
+
+            player.readyForLobby = true;
+
+            BroadcastPlayerList();
+        }
+
+        Debug.Log("Jugador listo para el lobby: " + playerId);
+    }
+
+
+    private void OnDisable()
+    {
+        Debug.LogError(
+            "DIAGNÓSTICO: LobbyServer recibió OnDisable." +
+            " Escena activa: " +
+            UnityEngine.SceneManagement.SceneManager
+                .GetActiveScene().name +
+            " | IsRunning: " + isRunning
+        );
+    }
+
+    private void OnDestroy()
+    {
+        Debug.LogError(
+            "DIAGNÓSTICO: LobbyServer recibió OnDestroy." +
+            " Escena activa: " +
+            UnityEngine.SceneManagement.SceneManager
+                .GetActiveScene().name +
+            " | IsRunning antes de detenerse: " + isRunning
+        );
+
+        StopServer();
+    }
+
 }

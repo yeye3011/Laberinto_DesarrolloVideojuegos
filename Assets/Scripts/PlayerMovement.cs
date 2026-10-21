@@ -1,10 +1,11 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using System;
 
 public class PlayerMovement : MonoBehaviour
 {
     [Header("Movimiento")]
-    [SerializeField] private float moveSpeed = 20f;
+    [SerializeField] private float moveSpeed = 18f;
 
     [Header("Rotación")]
     [SerializeField] private float rotationSpeed = 60f;
@@ -23,6 +24,9 @@ public class PlayerMovement : MonoBehaviour
     // Indica si este jugador puede recibir el joystick local.
     private bool isLocalPlayer = true;
     private bool isFrozen = false;
+    public bool IsFrozen => isFrozen;
+
+    public static event Action<PlayerMovement, bool> FreezeStateChanged;
     public bool IsLocalPlayer => isLocalPlayer;
     public int CurrentState { get; private set; }
 
@@ -85,10 +89,7 @@ public class PlayerMovement : MonoBehaviour
 
         input = Vector2.ClampMagnitude(input, 1f);
 
-        // -------------------------
         // ANIMACIÓN
-        // -------------------------
-
         bool isMoving = input.magnitude > 0.1f;
 
         CurrentState = isMoving ? 1 : 0;
@@ -98,30 +99,21 @@ public class PlayerMovement : MonoBehaviour
             animator.SetBool("IsMoving", isMoving);
         }
 
-        // -------------------------
         // ROTACIÓN
-        // -------------------------
-
         float rotation = input.x * rotationSpeed * Time.deltaTime;
 
         transform.Rotate(Vector3.up, rotation);
 
-        // -------------------------
         // MOVIMIENTO
-        // -------------------------
-
         float movement = input.y;
 
         Vector3 direction = transform.forward * movement;
 
         if (characterController != null)
         {
-            characterController.Move(
-                direction * moveSpeed * Time.deltaTime
-            );
+            characterController.Move(direction * moveSpeed * Time.deltaTime);
         }
     }
-
 
     public void ActivarVelocidad(float multiplicador, float duracion)
     {
@@ -135,9 +127,7 @@ public class PlayerMovement : MonoBehaviour
         );
     }
 
-    private System.Collections.IEnumerator EfectoVelocidad(
-        float multiplicador,
-        float duracion)
+    private System.Collections.IEnumerator EfectoVelocidad(float multiplicador, float duracion)
     {
         moveSpeed = velocidadOriginal * multiplicador;
 
@@ -160,11 +150,19 @@ public class PlayerMovement : MonoBehaviour
 
     public void CongelarMovimiento()
     {
+        if (isFrozen)
+            return;
+
         isFrozen = true;
+        FreezeStateChanged?.Invoke(this, true);
     }
 
     public void DescongelarMovimiento()
     {
+        if (!isFrozen)
+            return;
+
         isFrozen = false;
+        FreezeStateChanged?.Invoke(this, false);
     }
 }
